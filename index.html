@@ -19,7 +19,7 @@
     <div class="main-wrapper">
       <div class="padder"></div>
       <p class="no-margin-bottom">Cross-Origin Resource Sharing (CORS) is not allowed.</p>
-      <p class="no-margin-bottom">What is CORS? Just use an image from Wikipedia / Imgur / Unsplash</p>
+      <p class="no-margin-bottom">What is CORS?? Just use an image from Wikipedia / Imgur / Unsplash</p>
       <p>Do not use images too big as they will take a lot of time</p>
       <p id="info">Loading...</p>
       <form class="search-form js-search-form">
@@ -27,7 +27,11 @@
         placeholder="Paste an image URL and press Enter to detect skin" >
       </form>
       <div class="padder"></div>
-      <img id="imgbox" alt="No Image" />
+      <div id="slider-container">
+        <img id="imgbox-ori" alt="Loading..." title="Original image" />
+        <img id="imgbox" alt="Loading..." title="Detected skin pixels" />
+        <input type="range" min="0" max="100" value="50" id="slider" oninput="slide()">
+      </div>
     </div>
   </div>
 
@@ -48,6 +52,7 @@
           from pyodide.http import pyfetch
 
           print(f'Running on OpenCV version: {cv2.__version__}')
+          info_elem = js.document.getElementById("info")
 
           bins = 256
           tolCr = 1
@@ -370,14 +375,12 @@
             np.putmask(bw_final, mask1 & mask2, 255)
             
             cv2.imwrite(image_out, bw_final)
-            return bw_final
+            return bw_final, source
 
-          def info(js_element, string: str):
+          def info(string: str):
             print(string)
-            js_element.innerHTML = string
+            info_elem.innerHTML = string
           
-
-          info_elem = js.document.getElementById("info")
 
           # CORS is not allowed. Use Wikipedia / Imgur / Unsplash
           sample_list = [
@@ -393,46 +396,61 @@
           tries = 0
           while tries != -1: # keep trying till getting a valid image
             if tries > 0:
-              info(info_elem, f'Try #{tries+1}')
+              info(f'Try #{tries+1}')
             if tries >= 3: # if not even unsplash random works
               img_url = random.choice(sample_list)
               response = await pyfetch(img_url, redirect = 'follow')
               if response.status == 200:
                 tries = -1
-                filename = os.path.basename(img_url)
+                filename = os.path.basename(response.url)
                 with open(filename, "wb") as f:
                   f.write(await response.bytes())
-                  info(info_elem, 'Image successfully written to virtual file system')
+                info('Image successfully written to virtual file system')
             try:
               response = await pyfetch(img_url, redirect = 'follow')
               if response.status == 200:
                 tries = -1
-                filename = os.path.basename(img_url)
+                filename = os.path.basename(response.url)
                 with open(filename, "wb") as f:
                   f.write(await response.bytes())
-                  info(info_elem, 'Image successfully written to virtual file system')
+                info('Image successfully written to virtual file system')
             except:
-              info(info_elem, 'Error on the given image, trying on a random image instead')
+              info('Error on the given image, trying on a random image instead')
               img_url = "https://source.unsplash.com/random/300x400/?skin,face"
               tries = tries +1
           
           # Run skin detector
           try:
-            outcome = skin_detect(filename, 'img.png')
-            info(info_elem, 'Skin detection finished')
+            outcome, origin = skin_detect(filename, 'img.png')
+            info('Skin detection finished')
           except:
-            info(info_elem, 'Error while detecting skin, please try again with a different image')
+            info('Error while detecting skin, please try again with a different image')
 
           # Return image as base64 encoded string
           img_data = base64.b64encode(cv2.imencode('.png', outcome)[1]).decode()
-          info(info_elem, 'Image encoded')
+          info('Image encoded')
+
+          # Return original image
+          ori_data = base64.b64encode(cv2.imencode('.png', origin)[1]).decode()
+
+          image_height, image_width, image_channels = outcome.shape
+
+          # Update widths
+          js.document.getElementById("imgbox").style.width = f'{image_width}px'
+          js.document.getElementById("imgbox-ori").style.width = f'{image_width}px'
+          js.document.getElementById("slider").style.width = f'{image_width+50}px'
       `);
 
       img_data = pyodide.globals.get("img_data");
+      ori_data = pyodide.globals.get("ori_data");
 
       document.getElementById("imgbox").src = "data:image/png;base64," + img_data;
-
+      document.getElementById("imgbox-ori").src = "data:image/png;base64," + ori_data;
       console.log("Image replaced with predicted data");
+
+      // init comparison slider transparency
+      let slideValue = document.getElementById("slider").value;
+      document.getElementById("imgbox").style.clipPath = "polygon(0 0," + slideValue + "% 0," + slideValue + "% 100%, 0 100%)";
     }
     main();
   </script>
