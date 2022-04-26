@@ -8,17 +8,25 @@
   <meta name="description" content="The HTML5 Herald">
   <meta name="author" content="SitePoint">
 
-  <link rel="stylesheet" href="css/styles.css?v=1.0">
+  <link rel="stylesheet" href="styles.css">
 
   <script src="https://cdn.jsdelivr.net/pyodide/dev/full/pyodide.js"></script>
+  <script src="main.js"></script>
 </head>
 
 <body>
-  Pyodide test page <br>
-  Open your browser console to see Pyodide output
-
   <div>
-    <div class="inputoutput">
+    <div class="main-wrapper">
+      <div class="padder"></div>
+      <p class="no-margin-bottom">Cross-Origin Resource Sharing (CORS) is not allowed.</p>
+      <p class="no-margin-bottom">What is CORS? Just use an image from Wikipedia / Imgur / Unsplash</p>
+      <p>Do not use images too big as they will take a lot of time</p>
+      <p id="info">Loading...</p>
+      <form class="search-form js-search-form">
+        <input id="name" name="name" class="search-input" type="search" 
+        placeholder="Paste an image URL and press Enter to detect skin" >
+      </form>
+      <div class="padder"></div>
       <img id="imgbox" alt="No Image" />
     </div>
   </div>
@@ -34,6 +42,7 @@
           from math import ceil
           import sys
           import os
+          import random
           import js
           import base64
           from pyodide.http import pyfetch
@@ -363,24 +372,60 @@
             cv2.imwrite(image_out, bw_final)
             return bw_final
 
+          def info(js_element, string: str):
+            print(string)
+            js_element.innerHTML = string
+          
 
-          img_url = "https://mr.comingsoon.it/imgdb/persone/226714.jpg"
-          filename = os.path.basename(img_url)
+          info_elem = js.document.getElementById("info")
+
+          # CORS is not allowed. Use Wikipedia / Imgur / Unsplash
+          sample_list = [
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/d/db/Jennifer_Lawrence_TIFF_2%2C_2012.jpg/330px-Jennifer_Lawrence_TIFF_2%2C_2012.jpg',
+            'https://i.imgur.com/S2lYrKD.gif',
+            'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=387&q=80',
+            'https://images.unsplash.com/photo-1526758097130-bab247274f58?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80'
+          ]
+
+          img_url = ""
 
           # Download the given image to virtual file system
-          response = await pyfetch(img_url)
-          if response.status == 200:
-            with open(filename, "wb") as f:
-              f.write(await response.bytes())
-              print('Image successfully written to virtual file system')
+          tries = 0
+          while tries != -1: # keep trying till getting a valid image
+            if tries > 0:
+              info(info_elem, f'Try #{tries+1}')
+            if tries >= 3: # if not even unsplash random works
+              img_url = random.choice(sample_list)
+              response = await pyfetch(img_url, redirect = 'follow')
+              if response.status == 200:
+                tries = -1
+                filename = os.path.basename(img_url)
+                with open(filename, "wb") as f:
+                  f.write(await response.bytes())
+                  info(info_elem, 'Image successfully written to virtual file system')
+            try:
+              response = await pyfetch(img_url, redirect = 'follow')
+              if response.status == 200:
+                tries = -1
+                filename = os.path.basename(img_url)
+                with open(filename, "wb") as f:
+                  f.write(await response.bytes())
+                  info(info_elem, 'Image successfully written to virtual file system')
+            except:
+              info(info_elem, 'Error on the given image, trying on a random image instead')
+              img_url = "https://source.unsplash.com/random/300x400/?skin,face"
+              tries = tries +1
           
           # Run skin detector
-          outcome = skin_detect(filename, 'img.png')
-          print('Skin detection finished')
+          try:
+            outcome = skin_detect(filename, 'img.png')
+            info(info_elem, 'Skin detection finished')
+          except:
+            info(info_elem, 'Error while detecting skin, please try again with a different image')
 
           # Return image as base64 encoded string
           img_data = base64.b64encode(cv2.imencode('.png', outcome)[1]).decode()
-          print('Image encoded')
+          info(info_elem, 'Image encoded')
       `);
 
       img_data = pyodide.globals.get("img_data");
