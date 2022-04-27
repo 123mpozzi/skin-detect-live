@@ -1,40 +1,72 @@
 <!doctype html>
-
 <html lang="en">
 <head>
+
+ <!-- TODO: https://pyodide.org/en/stable/usage/webworker.html SkeletonCSS submitOnEnter https://freshman.tech/wikipedia-javascript/ Try-random-photo_button Github-button Metadata PoweredBy+WhyIsItSlow? README -->
+ 
+
+  <!-- Basic Page Needs
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
   <meta charset="utf-8">
+  <title>Adaptive rule based skin detector | 123mpozzi</title>
+  <meta name="description" content="Detect skin pixels in your browser!">
+  <meta name="author" content="123mpozzi">
 
-  <title>Title</title>
-  <meta name="description" content="The HTML5 Herald">
-  <meta name="author" content="SitePoint">
+  <!-- Mobile Specific Metas
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <link rel="stylesheet" href="styles.css">
+  <!-- FONT
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <link href="https://fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
 
+  <!-- CSS
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <link rel="stylesheet" href="css/normalize.css">
+  <link rel="stylesheet" href="css/skeleton.css">
+  <link rel="stylesheet" href="css/styles.css">
+
+  <!-- Favicon
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <link rel="icon" type="image/png" href="images/favicon.png">
+
+  <!-- JS
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
   <script src="https://cdn.jsdelivr.net/pyodide/dev/full/pyodide.js"></script>
   <script src="main.js"></script>
 </head>
 
 <body>
-  <div>
-    <div class="main-wrapper">
-      <div class="padder"></div>
-      <p class="no-margin-bottom">Cross-Origin Resource Sharing (CORS) is not allowed.</p>
-      <p class="no-margin-bottom">What is CORS?? Just use an image from Wikipedia / Imgur / Unsplash</p>
-      <p>Do not use images too big as they will take a lot of time</p>
-      <p id="info">Loading...</p>
-      <form class="search-form js-search-form">
-        <input id="name" name="name" class="search-input" type="search" 
-        placeholder="Paste an image URL and press Enter to detect skin" >
-      </form>
-      <div class="padder"></div>
-      <div id="slider-container">
-        <img id="imgbox-ori" alt="Loading..." title="Original image" />
-        <img id="imgbox" alt="Loading..." title="Detected skin pixels" />
-        <input type="range" min="0" max="100" value="50" id="slider" oninput="slide()">
+
+  <!-- Primary Page Layout
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <div class="container">
+    <div class="row">
+      <div style="margin-top: 10%">
+        <h4 style="text-align: center;">Adaptive rule based skin detector</h4>
+        <div class="main-wrapper">
+          <div class="padder"></div>
+          <p class="no-margin-bottom">Cross-Origin Resource Sharing (CORS) is not allowed.</p>
+          <p class="no-margin-bottom">What is CORS?? Just use an image from Wikipedia / Imgur / Unsplash</p>
+          <p>Do not use images too big as they will take a lot of time</p>
+          <p id="info">Loading...</p>
+          <form class="u-full-width search-form js-search-form">
+            <input id="name" name="name" class="u-full-width" type="search" 
+            placeholder="Paste an image URL and press Enter to detect skin" >
+          </form>
+          <div class="padder"></div>
+          <div id="slider-container" class="u-full-width">
+            <img id="imgbox-ori" alt="Loading..." title="Original image" />
+            <img id="imgbox" alt="Loading..." title="Detected skin pixels" />
+            <input type="range" min="0" max="100" value="50" id="slider" oninput="slide()">
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
+  <!-- Pyodide
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
   <script type="text/javascript">
     async function main(){
       let pyodide = await loadPyodide();
@@ -439,6 +471,10 @@
           js.document.getElementById("imgbox").style.width = f'{image_width}px'
           js.document.getElementById("imgbox-ori").style.width = f'{image_width}px'
           js.document.getElementById("slider").style.width = f'{image_width+50}px'
+          # Update heights
+          js.document.getElementById("imgbox").style.height = f'{image_height}px'
+          js.document.getElementById("imgbox-ori").style.height = f'{image_height}px'
+          js.document.getElementById("slider").style.height = f'{image_height}px'
       `);
 
       img_data = pyodide.globals.get("img_data");
@@ -453,6 +489,12 @@
       document.getElementById("imgbox").style.clipPath = "polygon(0 0," + slideValue + "% 0," + slideValue + "% 100%, 0 100%)";
     }
     main();
+
+    //var width = document.getElementById('imgbox').offsetWidth;
+    //document.getElementById("slider").style.width = String(width).concat('px');
   </script>
+
+<!-- End Document
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
 </body>
 </html>
