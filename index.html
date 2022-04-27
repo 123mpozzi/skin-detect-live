@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 
- <!-- TODO: https://pyodide.org/en/stable/usage/webworker.html better-randoms Github-button Metadata PoweredBy+WhyIsItSlow? README stable-pyodide-once-OpenCV-is-added -->
+ <!-- TODO: better-randoms Github-button stable-pyodide-once-OpenCV-is-added -->
  
 
   <!-- Basic Page Needs
@@ -92,7 +92,23 @@
   <!-- Pyodide
   –––––––––––––––––––––––––––––––––––––––––––––––––– -->
   <script type="text/javascript">
+    function isValidHttpUrl(string) {
+      let url;
+      
+      try {
+        url = new URL(string);
+      } catch (_) {
+        return false;  
+      }
+
+      return url.protocol === "http:" || url.protocol === "https:";
+    }
     async function main(){
+      document.getElementById('info').innerText = 'STATUS - Checking URL...'
+      if (!isValidHttpUrl(document.getElementById("name").value)) {
+        document.getElementById('info').innerText = 'STATUS - Invalid URL. Does it start with https:// ?'
+        return;
+      }
       document.getElementById('info').innerText = 'STATUS - Loading python...'
       let pyodide = await loadPyodide();
       await pyodide.loadPackage("opencv-python");
@@ -481,7 +497,11 @@
           
           # Return image as base64 encoded string
           img_data = base64.b64encode(cv2.imencode('.png', outcome)[1]).decode()
-          info('Finish')
+
+          if tries > 0:
+            info('Finish with sample image (invalid url)')
+          else:
+            info('Finish')
 
           # Return original image
           ori_data = base64.b64encode(cv2.imencode('.png', origin)[1]).decode()
