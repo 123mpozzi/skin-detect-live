@@ -71,7 +71,7 @@
             </div>
             <button class="one-half column button-primary"
             style="margin-left: 0; margin-bottom: 30px;"
-            onclick="main()">Detect Skin</button>
+            onclick="skinDetect()">Detect Skin</button>
           </div>
           <div id="slider-container" class="u-full-width">
             <img id="imgbox-ori" alt="Waiting for detection..." title="Original image" />
@@ -103,15 +103,24 @@
 
       return url.protocol === "http:" || url.protocol === "https:";
     }
-    async function main(){
+
+    // Init Pyodide
+    async function initPyodide() {
+      document.getElementById('info').innerText = 'STATUS - Loading python...'
+      let pyodide = await loadPyodide();
+      await pyodide.loadPackage("opencv-python");
+      document.getElementById('info').innerText = 'STATUS - Waiting input...'
+      return pyodide;
+    }
+    let pyodideReadyPromise = initPyodide();
+    
+    async function skinDetect(){
+      let pyodide = await pyodideReadyPromise;
       document.getElementById('info').innerText = 'STATUS - Checking URL...'
       if (!isValidHttpUrl(document.getElementById("name").value)) {
         document.getElementById('info').innerText = 'STATUS - Invalid URL. Does it start with https:// ?'
         return;
       }
-      document.getElementById('info').innerText = 'STATUS - Loading python...'
-      let pyodide = await loadPyodide();
-      await pyodide.loadPackage("opencv-python");
       document.getElementById('info').innerText = 'STATUS - Running script...'
       await pyodide.runPythonAsync(`
           import cv2
