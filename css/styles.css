@@ -85,3 +85,7 @@ p {
   text-transform: uppercase;
   letter-spacing: .2rem;
 }
+
+#page {
+  margin-top: 10vh;
+}
