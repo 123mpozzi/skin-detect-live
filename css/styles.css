@@ -1,11 +1,16 @@
+:root {
+  --color-primary: #2e8555;
+  --color-primary-darker: #277148;
+}
+
 p {
   text-align: justify;
 }
 
 .main-wrapper {
   display: flex;
-    flex-direction: column;
-    align-items: center;
+  flex-direction: column;
+  align-items: center;
 }
 
 
@@ -51,9 +56,9 @@ p {
 
 .search-form {
   display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
 #url-container {
@@ -75,6 +80,7 @@ p {
 
 
 #info {
+  color: var(--color-primary);
   text-transform: uppercase;
   font-size: 1.4rem;
   letter-spacing: .2rem;
@@ -87,5 +93,33 @@ p {
 }
 
 #page {
-  margin-top: 10vh;
+  margin-top: 10rem;
+}
+
+#navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  border-bottom: 1px solid #E1E1E1;
+  height: 7rem;
+  z-index: 2;
+  background: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+}
+#navbar > a {
+  margin: 0;
+  color: var(--color-primary);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+button {
+  background-color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+}
+button:hover {
+  background-color: var(--color-primary-darker) !important;
+  border-color: var(--color-primary-darker) !important;
 }
