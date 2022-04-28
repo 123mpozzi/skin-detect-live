@@ -60,7 +60,7 @@
             Also take note that <i>filtered images</i> are bad because the colors are altered
           </p>
           </div>
-          <p id="info">STATUS - Waiting input...</p>
+          <p id="info">STATUS - Ready, Waiting input</p>
           <div class="u-full-width search-form" >
             <div id="url-container" class="six columns" >
               <input id="name" name="name" class="two-thirds column" type="search" 
@@ -109,7 +109,7 @@
       document.getElementById('info').innerText = 'STATUS - Loading python...'
       let pyodide = await loadPyodide();
       await pyodide.loadPackage("opencv-python");
-      document.getElementById('info').innerText = 'STATUS - Waiting input...'
+      document.getElementById('info').innerText = 'STATUS - Ready, Waiting input'
       return pyodide;
     }
     let pyodideReadyPromise = initPyodide();
@@ -461,7 +461,7 @@
             mask2 = np.absolute(np.float64(Cb) - CbS).astype(np.uint8) <= J
             np.putmask(bw_final, mask1 & mask2, 255)
             
-            cv2.imwrite(image_out, bw_final)
+            #cv2.imwrite(image_out, bw_final)
             return bw_final, source
           
 

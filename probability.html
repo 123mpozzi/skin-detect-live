@@ -60,7 +60,7 @@
             Also take note that <i>filtered images</i> are bad because the colors are altered
           </p>
           </div>
-          <p id="info">STATUS - Waiting input...</p>
+          <p id="info">STATUS - Ready, Waiting input</p>
           <div class="u-full-width search-form" >
             <div id="url-container" class="six columns" >
               <input id="name" name="name" class="two-thirds column" type="search" 
@@ -110,13 +110,58 @@
       let pyodide = await loadPyodide();
       await pyodide.loadPackage("Pillow");
       await pyodide.loadPackage("pandas");
-      document.getElementById('info').innerText = 'STATUS - Waiting input...'
+      document.getElementById('info').innerText = 'STATUS - Ready, Waiting input'
       return pyodide;
     }
     let pyodideReadyPromise = initPyodide();
+
+    // Fetch Probability Model
+    async function fetchModel(){
+      let pyodide = await pyodideReadyPromise;
+      document.getElementById('info').innerText = 'STATUS - Fetching model...'
+      await pyodide.runPythonAsync(`
+        from pyodide.http import pyfetch
+        import js
+        import os
+        import pandas as pd
+
+        info_elem = js.document.getElementById("info")
+        def info(string: str):
+          print(string)
+          info_elem.innerText = "STATUS - " + string
+
+        def read_model(model_csv: str):
+          info("Reading CSV...")
+          probability = pd.read_csv(model_csv) # getting the rows from csv
+          return probability
+
+        model_url = 'https://raw.githubusercontent.com/123mpozzi/skin-statistical/main/models/ECU.zip'
+        try:
+          response = await pyfetch(model_url, redirect = 'follow')
+          if response.status == 200:
+            modelname = os.path.basename(response.url)
+            with open(modelname, "wb") as f:
+              f.write(await response.bytes())
+            info('Model successfully written to virtual file system')
+        except:
+          info('Critical: error on fetching the model')
+          exit()
+        
+        info('Reading probability...')
+        probability = read_model(modelname)
+        info('Probability data loaded')
+      `);
+
+      document.getElementById('info').innerText = 'STATUS - Ready, Waiting input'
+      probability = pyodide.globals.get("probability");
+      return probability;
+    }
+    let modelReadyPromise = fetchModel();
     
     async function skinDetect(){
       let pyodide = await pyodideReadyPromise;
+      let probability = await modelReadyPromise;
+      pyodide.registerJsModule("fetched", {probability});
       document.getElementById('info').innerText = 'STATUS - Checking URL...'
       if (!isValidHttpUrl(document.getElementById("name").value)) {
         document.getElementById('info').innerText = 'STATUS - Invalid URL. Does it start with https:// ?'
@@ -125,13 +170,13 @@
       document.getElementById('info').innerText = 'STATUS - Running script...'
       await pyodide.runPythonAsync(`
           from PIL import Image
-          import pandas as pd
           import os
           import random
           import js
           import base64
           from io import BytesIO
           from pyodide.http import pyfetch
+          from fetched import probability
 
           print(f'Running Pillow Image version: {Image.__version__}')
           info_elem = js.document.getElementById("info")
@@ -140,12 +185,7 @@
           def info(string: str):
             print(string)
             info_elem.innerText = "STATUS - " + string
-
           
-          def read_model(model_csv: str):
-            info("Reading CSV...")
-            probability = pd.read_csv(model_csv) # getting the rows from csv
-            return probability
 
           def open_image(src):
             # Convert to RGB as some image may be read as RGBA: https://stackoverflow.com/a/54713582
@@ -165,7 +205,7 @@
                       newimdata.append((255,255,255))
               
               im.putdata(newimdata)
-              im.save(out_p)
+              #im.save(out_p)
               return im
 
           def skin_detect(image_in: str, image_out: str, probability):
@@ -174,7 +214,6 @@
             except:
               exit('No input image found')
 
-            #im = open_image(path_x)
             temp = source.copy()
 
             bw_final = create_image(temp, probability, image_out)
@@ -220,27 +259,9 @@
               img_url = random.choice(sample_list)
               tries = tries +1
           
-          
-          # Fetch model
-          model_url = 'https://raw.githubusercontent.com/123mpozzi/skin-statistical/main/models/ECU.zip'
-          try:
-            response = await pyfetch(model_url, redirect = 'follow')
-            if response.status == 200:
-              modelname = os.path.basename(response.url)
-              with open(modelname, "wb") as f:
-                f.write(await response.bytes())
-              info('Model successfully written to virtual file system')
-          except:
-            info('Critical: error on fetching the model')
-            exit()
-
 
           # Run skin detector
           out_img = 'img.png'
-
-          # get model from github skin-statistical and unzip into virtual file manager
-          probability = read_model(modelname) # unzipped file
-          info('Probability data loaded')
 
           try:
             outcome, origin = skin_detect(filename, out_img, probability)
@@ -251,8 +272,6 @@
           info('Encoding image')
           
           # Return image as base64 encoded string
-          #with open(out_img, "rb") as image_file:
-          #  img_data = base64.b64encode(image_file.read())
           buffered = BytesIO()
           outcome.save(buffered, format="PNG")
           img_data = base64.b64encode(buffered.getvalue()).decode()
@@ -263,8 +282,6 @@
             info('Finish')
 
           # Return original image
-          #with open(out_img, "rb") as image_file:
-          #  ori_data = base64.b64encode(image_file.read())
           buffered = BytesIO()
           origin.save(buffered, format="PNG")
           ori_data = base64.b64encode(buffered.getvalue()).decode()
