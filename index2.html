@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="en">
+<head>
+
+ <!-- TODO: stable-pyodide-once-OpenCV-is-added -->
+ 
+
+  <!-- Basic Page Needs
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <meta charset="utf-8">
+  <title>Statistical skin detector | 123mpozzi</title>
+  <meta name="description" content="Detect skin pixels in your browser using probability!">
+  <meta name="author" content="123mpozzi">
+
+  <!-- Mobile Specific Metas
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- FONT
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <link href="https://fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+
+  <!-- CSS
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <link rel="stylesheet" href="css/normalize.css">
+  <link rel="stylesheet" href="css/skeleton.css">
+  <link rel="stylesheet" href="css/styles.css">
+
+  <!-- Favicon
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <link rel="icon" type="image/png" href="images/favicon.png">
+
+  <!-- JS
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <script src="https://cdn.jsdelivr.net/pyodide/dev/full/pyodide.js"></script>
+  <script src="main.js"></script>
+</head>
+
+<body>
+
+  <!-- Primary Page Layout
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <div class="container">
+    <div class="row">
+      <a href="https://github.com/123mpozzi/skin-detect-live" class="github-corner" aria-label="View source on GitHub" style="position: fixed; top: 0; right: 0;" target="_blank" ><svg width="80" height="80" viewBox="0 0 250 250" style="fill:#151513; color:#fff; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a><style>.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}@keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}@media (max-width:500px){.github-corner:hover .octo-arm{animation:none}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out}}</style>
+      <div style="margin-top: 10%">
+        <h4 id="heading" style="text-align: center;">Probability based skin detector</h4>
+        <div class="main-wrapper">
+          <div class="padder"></div>
+          <div>
+          <p>
+            Apart from requiring <i>colored images</i>, this live demo has some <b>additional limitations</b>:
+          </p>
+          <ul>
+            <li>Images must be hosted on the same website (use Wikipedia, Imgur, Flickr)</li>
+            <li>Slower: do not use big images</li>
+            <li>Webpage may freeze, do not refresh</li>
+          </ul>
+          <p>
+            Also take note that <i>filtered images</i> are bad because the colors are altered
+          </p>
+          </div>
+          <p id="info">STATUS - Waiting input...</p>
+          <div class="u-full-width search-form" >
+            <div id="url-container" class="six columns" >
+              <input id="name" name="name" class="two-thirds column" type="search" 
+              placeholder="Paste an image URL">
+              <span style="width: 40px;"></span>
+              <span id="randomness" class="one columns"
+              onclick="insertRandom()"></span>
+            </div>
+            <button class="one-half column button-primary"
+            style="margin-left: 0; margin-bottom: 30px;"
+            onclick="skinDetect()">Detect Skin</button>
+          </div>
+          <div id="slider-container" class="u-full-width">
+            <img id="imgbox-ori" alt="Waiting for detection..." title="Original image" />
+            <img id="imgbox" alt="Waiting for detection..." title="Detected skin pixels" />
+            <input type="range" min="0" max="100" value="50" id="slider" oninput="slide()">
+          </div>
+        </div>
+      </div>
+      <div class="row u-full-width">
+        <hr />
+        <p style="text-align: center;">
+          Styled with Skeleton. Powered by Pyodide.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pyodide
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <script type="text/javascript">
+    function isValidHttpUrl(string) {
+      let url;
+      
+      try {
+        url = new URL(string);
+      } catch (_) {
+        return false;  
+      }
+
+      return url.protocol === "http:" || url.protocol === "https:";
+    }
+
+    // Init Pyodide
+    async function initPyodide() {
+      document.getElementById('info').innerText = 'STATUS - Loading python...'
+      let pyodide = await loadPyodide();
+      await pyodide.loadPackage("Pillow");
+      await pyodide.loadPackage("pandas");
+      document.getElementById('info').innerText = 'STATUS - Waiting input...'
+      return pyodide;
+    }
+    let pyodideReadyPromise = initPyodide();
+    
+    async function skinDetect(){
+      let pyodide = await pyodideReadyPromise;
+      document.getElementById('info').innerText = 'STATUS - Checking URL...'
+      if (!isValidHttpUrl(document.getElementById("name").value)) {
+        document.getElementById('info').innerText = 'STATUS - Invalid URL. Does it start with https:// ?'
+        return;
+      }
+      document.getElementById('info').innerText = 'STATUS - Running script...'
+      await pyodide.runPythonAsync(`
+          from PIL import Image
+          import pandas as pd
+          import os
+          import random
+          import js
+          import base64
+          from io import BytesIO
+          from pyodide.http import pyfetch
+
+          print(f'Running Pillow Image version: {Image.__version__}')
+          info_elem = js.document.getElementById("info")
+          img_url = js.document.getElementById("name").value
+
+          def info(string: str):
+            print(string)
+            info_elem.innerText = "STATUS - " + string
+
+          
+          def read_model(model_csv: str):
+            info("Reading CSV...")
+            probability = pd.read_csv(model_csv) # getting the rows from csv
+            return probability
+
+          def open_image(src):
+            # Convert to RGB as some image may be read as RGBA: https://stackoverflow.com/a/54713582
+            return Image.open(src,'r').convert('RGB')
+
+          def create_image(im: Image, probability, out_p) -> float:
+              im.load()
+
+              # ALGO
+              newimdata = []
+              
+              for r,g,b in im.getdata():
+                  row_num = (r*256*256) + (g*256) + b # calculating the serial row number 
+                  if probability['Probability'][row_num] < 0.555555:
+                      newimdata.append((0,0,0))
+                  else:
+                      newimdata.append((255,255,255))
+              
+              im.putdata(newimdata)
+              im.save(out_p)
+              return im
+
+          def skin_detect(image_in: str, image_out: str, probability):
+            try:
+              source = open_image(image_in)
+            except:
+              exit('No input image found')
+
+            #im = open_image(path_x)
+            temp = source.copy()
+
+            bw_final = create_image(temp, probability, image_out)
+            return bw_final, source
+          
+          
+          # CORS is not allowed. Use Wikipedia / Imgur / Flickr
+          sample_list = [
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/d/db/Jennifer_Lawrence_TIFF_2%2C_2012.jpg/330px-Jennifer_Lawrence_TIFF_2%2C_2012.jpg',
+            'https://i.imgur.com/S2lYrKD.gif',
+            'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=387&q=80',
+            'https://upload.wikimedia.org/wikipedia/commons/d/d9/Morgan_Freeman_Cannes.jpg',
+            'https://i.imgur.com/mDtRHQ5.jpeg',
+            'https://i.imgur.com/4YnIDaG.jpeg',
+            'https://i.imgur.com/EpqnLEq.jpeg',
+            'https://i.imgur.com/5vDG9WQ.jpeg',
+            'https://i.imgur.com/3sVZJel.jpeg',
+            'https://i.imgur.com/Jzzdksj.jpeg',
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/5/56/Halle_Berry_by_Gage_Skidmore_2.jpg/330px-Halle_Berry_by_Gage_Skidmore_2.jpg',
+            'https://live.staticflickr.com/65535/49866975356_962dbee9f7_z.jpg',
+            'https://live.staticflickr.com/2277/2949090369_a05ec7ab18_z.jpg',
+            'https://live.staticflickr.com/3085/2731117809_5f1ebddca4.jpg'
+          ]
+
+          # Download the given image to virtual file system
+          tries = 0
+          while True: # keep trying till getting a valid image
+            if tries > 0:
+              info(f'Try #{tries+1}')
+            elif tries > 6:
+              info(f'Cannot fetch any image!')
+              break
+            try:
+              response = await pyfetch(img_url, redirect = 'follow')
+              if response.status == 200:
+                filename = os.path.basename(response.url)
+                with open(filename, "wb") as f:
+                  f.write(await response.bytes())
+                info('Image successfully written to virtual file system')
+                break
+            except:
+              info('Error on the given image, trying on a random image instead')
+              img_url = random.choice(sample_list)
+              tries = tries +1
+          
+          
+          # Fetch model
+          model_url = 'https://raw.githubusercontent.com/123mpozzi/skin-statistical/main/models/ECU.zip'
+          try:
+            response = await pyfetch(model_url, redirect = 'follow')
+            if response.status == 200:
+              modelname = os.path.basename(response.url)
+              with open(modelname, "wb") as f:
+                f.write(await response.bytes())
+              info('Model successfully written to virtual file system')
+          except:
+            info('Critical: error on fetching the model')
+            exit()
+
+
+          # Run skin detector
+          out_img = 'img.png'
+
+          # get model from github skin-statistical and unzip into virtual file manager
+          probability = read_model(modelname) # unzipped file
+          info('Probability data loaded')
+
+          try:
+            outcome, origin = skin_detect(filename, out_img, probability)
+            info('Skin detector ran without issues')
+          except:
+            info('Error while detecting skin, please try again with a different image')
+
+          info('Encoding image')
+          
+          # Return image as base64 encoded string
+          #with open(out_img, "rb") as image_file:
+          #  img_data = base64.b64encode(image_file.read())
+          buffered = BytesIO()
+          outcome.save(buffered, format="PNG")
+          img_data = base64.b64encode(buffered.getvalue()).decode()
+
+          if tries > 0:
+            info('Finish with sample image (invalid url)')
+          else:
+            info('Finish')
+
+          # Return original image
+          #with open(out_img, "rb") as image_file:
+          #  ori_data = base64.b64encode(image_file.read())
+          buffered = BytesIO()
+          origin.save(buffered, format="PNG")
+          ori_data = base64.b64encode(buffered.getvalue()).decode()
+
+          image_width, image_height = outcome.size
+
+          # Update widths
+          js.document.getElementById("imgbox").style.width = f'{image_width}px'
+          js.document.getElementById("imgbox-ori").style.width = f'{image_width}px'
+          js.document.getElementById("slider").style.width = f'{image_width+50}px'
+          # Update heights
+          js.document.getElementById("imgbox").style.height = f'{image_height}px'
+          js.document.getElementById("imgbox-ori").style.height = f'{image_height}px'
+          js.document.getElementById("slider").style.height = f'{image_height}px'
+          js.document.getElementById("slider-container").style.height = f'{image_height+50}px'
+      `);
+
+      img_data = pyodide.globals.get("img_data");
+      ori_data = pyodide.globals.get("ori_data");
+
+      document.getElementById("imgbox").src = "data:image/png;base64," + img_data;
+      document.getElementById("imgbox-ori").src = "data:image/png;base64," + ori_data;
+      console.log("Image replaced with predicted data");
+
+      // init comparison slider transparency
+      let slideValue = document.getElementById("slider").value;
+      document.getElementById("imgbox").style.clipPath = "polygon(0 0," + slideValue + "% 0," + slideValue + "% 100%, 0 100%)";
+
+      document.getElementById("slider-container").style.visibility = "visible";
+    }
+  </script>
+
+<!-- End Document
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+</body>
+</html>

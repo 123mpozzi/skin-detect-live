@@ -113,7 +113,7 @@
       return pyodide;
     }
     let pyodideReadyPromise = initPyodide();
-    
+
     async function skinDetect(){
       let pyodide = await pyodideReadyPromise;
       document.getElementById('info').innerText = 'STATUS - Checking URL...'
@@ -126,7 +126,6 @@
           import cv2
           import numpy as np
           from math import ceil
-          import sys
           import os
           import random
           import js
