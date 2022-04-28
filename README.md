@@ -1,4 +1,4 @@
-[py]: https://github.com "see on GitHub"
+[py]: https://github.com/123mpozzi/nbrancati-py "see on GitHub"
 [pyodide]: https://github.com/pyodide/pyodide "see on GitHub"
 
 # Adaptive rule based skin detector - Live demo
