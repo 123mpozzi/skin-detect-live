@@ -90,10 +90,10 @@
     </div>
   </div>
 
-  <!-- Pyodide
+  <!-- Tensorflow.js
   –––––––––––––––––––––––––––––––––––––––––––––––––– -->
   <script type="text/javascript">
-    // TODO: place in other site; powered by tfjs; info('finish'); keep model loaded and loop images?
+    // TODO: place in other site; powered by tfjs; info('finish'); keep model loaded and loop images? tries
     let info_elem = document.getElementById("info");
     let img_pred = document.getElementById("imgbox");
     let img_ori = document.getElementById("imgbox-ori");
@@ -111,7 +111,6 @@
     }
     function getMeta(img, url){   
       let temp;
-      //const img = new Image();
       img.addEventListener("load", onLoad);
       img.src = url;
     }
@@ -133,11 +132,18 @@
       info_elem.innerText = "STATUS - " + string
     }
 
+    // Fetch Probability Model
+    async function fetchModel(){
+      info('Loading model...');
+      let model = await tf.loadGraphModel(modelURL);
+      document.getElementById('info').innerText = 'STATUS - Ready, Waiting input'
+      return model;
+    }
+    let modelReadyPromise = fetchModel();
+
     // Skin Detect
     async function skinDetect() {
-      // Load model
-      info('Loading model...');
-      if (!model) model = await tf.loadGraphModel(modelURL);
+      let model = await modelReadyPromise;
 
       // Check URL
       info('Checking URL...');
@@ -155,6 +161,7 @@
     }
 
     async function skinDetectContinue() {
+      let model = await modelReadyPromise;
       // remove previous event listener or it will lag after setting img src
       img_ori.removeEventListener("load", onLoad);
 
@@ -201,17 +208,24 @@
       // Get resulting image data
       info('Encoding prediction...')
       const canvas = document.createElement('canvas');
-      canvas.width = tensor.shape.width
-      canvas.height = tensor.shape.height
+      image_width = outputs.shape[1];
+      image_height = outputs.shape[0];
+      canvas.width = image_width;
+      canvas.height = image_height;
       await tf.browser.toPixels(outputs, canvas);
       let img_data = canvas.toDataURL() // will return the base64 encoding
-      img_pred.style.width = tensor.shape.width;
-      img_pred.style.height = tensor.shape.height;
+      img_pred.style.width = String(image_width) + 'px';
+      img_pred.style.height = String(image_height) + 'px';
       img_pred.src = img_data;
       // encode original image
-      img_ori.style.width = tensor.shape.width;
-      img_ori.style.height = tensor.shape.height;
+      img_ori.style.width = String(image_width) + 'px';
+      img_ori.style.height = String(image_height) + 'px';
       img_ori.src = ori_data;
+
+      // Update slider dimensions TODO:fix
+      const slider_width = image_width + 50;
+      document.getElementById("slider").style.width = String(slider_width) + 'px';
+      document.getElementById("slider").style.height = String(image_height) + 'px';
 
       // Init comparison slider transparency
       let slideValue = document.getElementById("slider").value;
