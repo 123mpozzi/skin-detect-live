@@ -113,7 +113,7 @@
     // onError in image URL, use a sample image 
     function onError() {
       tries = tries +1;
-      let sample_list = getSamples();
+      const sample_list = getSamples();
       if (tries > 0) {
         info('Try #{}'.replace('{}', String(tries+1)));
       }
@@ -150,11 +150,26 @@
       console.log(string)
       info_elem.innerText = "STATUS - " + string
     }
+    // Credits: https://stackoverflow.com/a/15392028
+    function uint16(x) {
+      if(x > 32767) {
+        x = x - 65536;
+      }
+      return x;
+    }
 
     // Fetch Model
     async function fetchModel(){
       info('Loading model...');
       let model = await tf.loadGraphModel(modelURL);
+
+      // Warmup the model before using real data.
+      info('Model warmup...');
+      const inputShape = [1, img_ori.style.height, img_ori.style.width, 3];
+      const warmupResult = model.execute({ 'feature' : tf.zeros(inputShape) });
+      warmupResult.dataSync(); // we don't care about the result
+      warmupResult.dispose();
+      
       info('Ready, Waiting input');
       return model;
     }
@@ -163,6 +178,7 @@
     // Skin Detect
     async function skinDetect() {
       let model = await modelReadyPromise;
+      info('Using backend: ' + tf.getBackend());
 
       // Check URL
       info('Checking URL...');
@@ -185,57 +201,64 @@
       img_ori.removeEventListener("load", onLoad);
       img_ori.removeEventListener("error", onError);
 
-      // Now that image has dimensions, finally get image pixels
-      let tensor = tf.browser.fromPixels(img_ori); // img in 0-255
-
-      info('Using backend: ' + tf.getBackend());
-
-      // Start Preprocessing
-      info('Preprocessing...')
-      tensor = tensor.cast('float32');
-      tensor = tensor.div(tf.scalar(255)) // normalize to 0-1
-      tensor = tensor.cast('float32');
-      // Downscale to maximum 512x512 pixels
-      let max_pixel_count = 512*512;
-      let coefficient = max_pixel_count / (tensor.shape[1] * tensor.shape[2])
-      coefficient = Math.sqrt(coefficient);
-      if (coefficient < 1.0) {
-        tensor = tf.image.resize(tensor, [tf.cast(tensor_shape[0] * coefficient, tf.uint16), tf.cast(tensor_shape[1] * coefficient, tf.uint16)]);
-      }
-      // Pad
-      let network_levels = 6;
-      let number_multiple = Math.pow(2, (network_levels-1));
-      tensor = tf.pad(tensor, [[0, number_multiple - tensor.shape[0] % number_multiple],
-                                     [0,  number_multiple - tensor.shape[1] % number_multiple],
-                                     [0, 0]]);
-      
-      // Save pre-processed original image
-      const canvas_ori = document.createElement('canvas');
-      canvas_ori.width = tensor.shape.width
-      canvas_ori.height = tensor.shape.height
-      await tf.browser.toPixels(tensor, canvas_ori);
-      let ori_data = canvas_ori.toDataURL() // will return the base64 encoding
-
-      // Predict
-      info('Feeding model...')
-      tensor = tensor.expandDims(0); // insert image into 4D tensor
-      let outputs;
       try {
-        outputs = await model.execute({ 'feature' : tensor });
-        outputs = outputs.squeeze(0); // extract image from 4D tensor
+        // Start Preprocessing
+        info('Preprocessing...')
+        const tensor = tf.tidy(() => {
+          // Now that image has dimensions, finally get image pixels
+          let result = tf.browser.fromPixels(img_ori); // img in 0-255
+          // Normalize to 0-1
+          result = result.cast('float32').div(tf.scalar(255));
+          const tensor_height = result.shape[0];
+          const tensor_width = result.shape[1];
+          // Downscale to maximum 512x512 pixels
+          const max_pixel_count = 512*512;
+          const coefficient = Math.sqrt(max_pixel_count / (tensor_height * tensor_width));
+          if (coefficient < 1.0) {
+            const new_height = uint16(tensor_height * coefficient);
+            const new_width = uint16(tensor_width * coefficient);
+            result = tf.image.resizeBilinear(result, [new_height, new_width]);
+          }
+          // Pad
+          const network_levels = 6;
+          const number_multiple = Math.pow(2, (network_levels-1));
+          const paddings = [
+            [0, number_multiple - tensor_height % number_multiple],
+            [0, number_multiple - tensor_width % number_multiple],
+            [0, 0]
+          ];
+          result = result.pad(paddings);
+          return result;
+        });
+        
+        // Save pre-processed original image
+        const canvas_ori = document.createElement('canvas');
+        canvas_ori.width = tensor.shape[1]
+        canvas_ori.height = tensor.shape[0]
+        await tf.browser.toPixels(tensor, canvas_ori);
+        let ori_data = canvas_ori.toDataURL() // will return the base64 encoding
 
-        // Binarize
-        outputs = outputs.round();
+        // Predict
+        info('Feeding model...')
+        const dataset = tensor.expandDims(0); // insert image into 4D tensor
+        tensor.dispose();
+
+        const outputs = await model.execute({ 'feature' : dataset });
+        dataset.dispose();
+        // Extract image from 4D tensor and Binarize
+        const outcome = outputs.squeeze(0).round();
+        outputs.dispose();
 
         // Get resulting image data
         info('Encoding prediction...')
         const canvas = document.createElement('canvas');
-        image_width = outputs.shape[1];
-        image_height = outputs.shape[0];
+        image_width = outcome.shape[1];
+        image_height = outcome.shape[0];
         canvas.width = image_width;
         canvas.height = image_height;
-        await tf.browser.toPixels(outputs, canvas);
-        let img_data = canvas.toDataURL() // will return the base64 encoding
+        await tf.browser.toPixels(outcome, canvas);
+        outcome.dispose();
+        const img_data = canvas.toDataURL() // will return the base64 encoding
         img_pred.style.width = String(image_width) + 'px';
         img_pred.style.height = String(image_height) + 'px';
         img_pred.src = img_data;
@@ -256,16 +279,22 @@
         document.getElementById("slider").style.height = String(image_height) + 'px';
 
         // Init comparison slider transparency
-        let slideValue = document.getElementById("slider").value;
+        const slideValue = document.getElementById("slider").value;
         document.getElementById("imgbox").style.clipPath = "polygon(0 0," + slideValue + "% 0," + slideValue + "% 100%, 0 100%)";
 
         document.getElementById("slider-container").style.visibility = "visible";
 
         // reset tries counter
         tries = 0;
+
+        // clean memory
+        tf.disposeVariables()
       } catch (_) {
         info('Error on predict, please refresh and retry');
       }
+
+      // clean memory
+      //console.table( tf.memory() ); // TODO: fix memory leak
     }
   </script>
 

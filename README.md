@@ -1,5 +1,6 @@
 [py]: https://github.com/123mpozzi/nbrancati-py "see on GitHub"
 [stat]: https://github.com/123mpozzi/skin-statistical "see on GitHub"
+[unet]: https://github.com/123mpozzi/skinny "see on GitHub"
 [pyodide]: https://github.com/pyodide/pyodide "see on GitHub"
 
 # Skin detectors - Live demo
@@ -15,10 +16,10 @@ https://doi.org/10.1016/j.cviu.2016.12.001
 ## Statistical
 Live demo of the [statistical skin detector][stat] featured in my thesis, running in the browser.
 
+## U-Net
+Live demo of the [statistical skin detector][unet] featured in my thesis, running in the browser.
 
 ## Limitations
-
-The statistical and rule based skin detectors have some additional limitations
 
 #### Slower
 The python code runs in the browser thanks to [Pyodide][pyodide] which work wonderfully, but has not yet reached the performance of native python.  
@@ -29,5 +30,5 @@ If the image at given URL is not hosted on the same website, it will not work an
 Also, local URLs (file://) do not work.
 
 #### Page freezing
-The python code is run in the main thread, hence the page may freeze, especially on large images.  
+The detector code runs in the main thread, hence the page may freeze, especially on large images.  
 Implementing WebWorkers would prevent this issue.
