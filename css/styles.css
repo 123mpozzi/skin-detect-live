@@ -123,3 +123,15 @@ button:hover {
   background-color: var(--color-primary-darker) !important;
   border-color: var(--color-primary-darker) !important;
 }
+input[type="search"]:focus {
+  border-color: var(--color-primary) !important;
+}
+
+/*
+.cpu-checkbox {
+  display: flex;
+  align-items: baseline;
+}
+.cpu-checkbox > input{
+  margin-right: 1rem;
+}*/

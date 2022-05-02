@@ -70,6 +70,12 @@
               <span id="randomness" class="one columns"
               onclick="insertRandom()"></span>
             </div>
+            <!-- FORCE CPU checkbox
+            <div class="six columns cpu-checkbox">
+              <input type="checkbox" id="cpu" name="cpu" value="cpu">
+              <label for="cpu">Force CPU backend</label>
+            </div>
+            -->
             <button class="one-half column button-primary"
             style="margin-left: 0; margin-bottom: 30px;"
             onclick="skinDetect()">Detect Skin</button>
@@ -99,8 +105,6 @@
     let model;
     let tries = 0;
     const modelURL = './models/web_model-20210428-155148/model.json';
-
-    // TODO: force CPU checkbox
 
 
     // Functions to fetch and set image size from URL (or tensorflow cannot create tensors)
@@ -155,14 +159,17 @@
     function info(string) {
       console.log(string)
       info_elem.innerText = "STATUS - " + string
+      // TODO: Force element redraw
     }
+    /*
     // Credits: https://stackoverflow.com/a/15392028
     function uint16(x) {
+      x = Math.trunc(x);
       if(x > 32767) {
         x = x - 65536;
       }
       return x;
-    }
+    }*/
 
 
     // Load Model
@@ -183,15 +190,17 @@
       model = await loadModel();
       warmupModel(model);
       info('Ready, Waiting input');
-      console.table( tf.memory() );
+      //console.table( tf.memory() );
     }
 
 
     // Skin Detect
 
     async function skinDetect() {
+      /*const force_cpu = document.getElementById('cpu').checked;
+      if (force_cpu) tf.setBackend('cpu');*/
       info('Using backend: ' + tf.getBackend());
-      // Fix GPU memory leak, but slower
+      // This fixes GPU memory leak (bytes), but is slower
       //if (tf.getBackend() === 'webgl')
       //  tf.ENV.set('WEBGL_DELETE_TEXTURE_THRESHOLD', 0);
 
@@ -226,13 +235,28 @@
           const tensor_height = result.shape[0];
           const tensor_width = result.shape[1];
           // Downscale to maximum 512x512 pixels
+          /*
+          // TODO. Bugged: dtype uint16 is not implemented in tfjs;
+          //         hence when coefficient < 1.0, it will trigger
+          //         a int / float error in C++ WebGL fragment code.
+          //         uint16(x) must be implemented better to work
+          //       Bugged2: coefficient keep decreasing after each
+          //         inference
+          
           const max_pixel_count = 512*512;
           const coefficient = Math.sqrt(max_pixel_count / (tensor_height * tensor_width));
+          console.log(coefficient)
+          console.log(tensor_height)
+          console.log(tensor_width)
+          
           if (coefficient < 1.0) {
             const new_height = uint16(tensor_height * coefficient);
             const new_width = uint16(tensor_width * coefficient);
+            console.log(new_height)
+            console.log(new_width)
             result = tf.image.resizeBilinear(result, [new_height, new_width]);
           }
+          */
           // Pad
           const network_levels = 6;
           const number_multiple = Math.pow(2, (network_levels-1));
@@ -305,12 +329,12 @@
         // reset tries counter
         tries = 0;
       } catch (_) {
-        info('Critical: error on predict, please refresh and retry');
+        info('Critical: error on predict, refresh and retry');
       }
 
       // clean memory
       //tf.dispose(model);
-      console.table( tf.memory() ); // TODO: fix memory leak
+      //console.table( tf.memory() ); // TODO: fix memory leak
     }
 
     main();
