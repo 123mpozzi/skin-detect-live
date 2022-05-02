@@ -45,19 +45,22 @@
         <a href="probability.html">Try Statistical</a>
       </div>
       <div id="page">
-        <h4 id="heading" style="text-align: center;">U-Net based skin detector</h4>
+        <h5 id="heading" style="text-align: center;">U-Net based skin detector</h5>
+        <p style="text-align: center; margin-bottom: 0.5rem;"><i>on colored images</i></p>
         <div class="main-wrapper">
           <div class="padder"></div>
           <div>
-          <p>
-            Apart from requiring <i>colored images</i>, this live demo has some <b>additional limitations</b>:
+          <p style="margin-bottom: 1rem;">
+            <b>Limitations</b> of the Live Demo:
           </p>
           <ul>
             <li>Images must be hosted on the same website (use Wikipedia, Imgur, Flickr)</li>
-            <li>Slower: do not use big images</li>
+            <li>Images will be resized 256x256</li>
             <li>Webpage may freeze, do not refresh</li>
           </ul>
           <p>
+            <b>Performance depends on your hardware</b>
+            <br />
             Also take note that <i>filtered images</i> are bad because the colors are altered
           </p>
           </div>
@@ -99,25 +102,17 @@
   <!-- Tensorflow.js
   –––––––––––––––––––––––––––––––––––––––––––––––––– -->
   <script type="text/javascript">
-    let info_elem = document.getElementById("info");
-    let img_pred = document.getElementById("imgbox");
-    let img_ori = document.getElementById("imgbox-ori");
+    const info_elem = document.getElementById("info");
+    const img_pred = document.getElementById("imgbox");
+    const img_ori = document.getElementById("imgbox-ori");
     let model;
     let tries = 0;
     const modelURL = './models/web_model-20210428-155148/model.json';
+    const square_size = 256;
 
 
     // Functions to fetch and set image size from URL (or tensorflow cannot create tensors)
 
-    function setMeta(img, width, height) {
-      img.style.width = width;
-      img.style.height = height;
-    }
-    // onLoad set img HTML element size to the size of URL image
-    function onLoad() {
-      setMeta(this, this.naturalWidth, this.naturalHeight);
-      skinDetectContinue();
-    }
     // onError in image URL, use a sample image 
     function onError() {
       tries = tries +1;
@@ -134,8 +129,11 @@
       this.src = url;
       document.getElementById("name").value = url;
     }
-    function getMeta(img, url){   
-      let temp;
+    function onLoad() {
+      // wait img to load src or else TensorFlow do not know image size and fails
+      skinDetectContinue();
+    }
+    function getMeta(img, url){
       img.addEventListener("load", onLoad);
       img.addEventListener("error", onError);
       
@@ -161,15 +159,23 @@
       info_elem.innerText = "STATUS - " + string
       // TODO: Force element redraw
     }
-    /*
-    // Credits: https://stackoverflow.com/a/15392028
-    function uint16(x) {
-      x = Math.trunc(x);
-      if(x > 32767) {
-        x = x - 65536;
-      }
-      return x;
-    }*/
+    // Credit to @justadudewhohacks
+    // https://github.com/tensorflow/tfjs/issues/604#issuecomment-416135683
+    function imageToSquare(img, inputSize) {
+      const dims = img instanceof HTMLImageElement 
+        ? { width: img.naturalWidth, height: img.naturalHeight }
+        : img 
+      const scale = inputSize / Math.max(dims.height, dims.width)
+      const width = scale * dims.width
+      const height = scale * dims.height
+
+      const targetCanvas = document.createElement('canvas')
+      targetCanvas .width = inputSize
+      targetCanvas .height = inputSize
+      targetCanvas.getContext('2d').drawImage(img, 0, 0, width, height)
+
+      return targetCanvas
+    }
 
 
     // Load Model
@@ -197,12 +203,10 @@
     // Skin Detect
 
     async function skinDetect() {
-      /*const force_cpu = document.getElementById('cpu').checked;
-      if (force_cpu) tf.setBackend('cpu');*/
       info('Using backend: ' + tf.getBackend());
-      // This fixes GPU memory leak (bytes), but is slower
-      //if (tf.getBackend() === 'webgl')
-      //  tf.ENV.set('WEBGL_DELETE_TEXTURE_THRESHOLD', 0);
+      // This fixes GPU memory leak (bytes), but inference is slower
+      if (tf.getBackend() === 'webgl')
+        tf.ENV.set('WEBGL_DELETE_TEXTURE_THRESHOLD', 0);
 
       // Check URL
       info('Checking URL...');
@@ -229,43 +233,12 @@
         info('Preprocessing...')
         const tensor = tf.tidy(() => {
           // Now that image has dimensions, finally get image pixels
-          let result = tf.browser.fromPixels(img_ori); // img in 0-255
+          const squared_image = imageToSquare(img_ori, square_size);
+          let result = tf.browser.fromPixels(squared_image); // img in 0-255
           // Normalize to 0-1
           result = result.cast('float32').div(tf.scalar(255));
           const tensor_height = result.shape[0];
           const tensor_width = result.shape[1];
-          // Downscale to maximum 512x512 pixels
-          /*
-          // TODO. Bugged: dtype uint16 is not implemented in tfjs;
-          //         hence when coefficient < 1.0, it will trigger
-          //         a int / float error in C++ WebGL fragment code.
-          //         uint16(x) must be implemented better to work
-          //       Bugged2: coefficient keep decreasing after each
-          //         inference
-          
-          const max_pixel_count = 512*512;
-          const coefficient = Math.sqrt(max_pixel_count / (tensor_height * tensor_width));
-          console.log(coefficient)
-          console.log(tensor_height)
-          console.log(tensor_width)
-          
-          if (coefficient < 1.0) {
-            const new_height = uint16(tensor_height * coefficient);
-            const new_width = uint16(tensor_width * coefficient);
-            console.log(new_height)
-            console.log(new_width)
-            result = tf.image.resizeBilinear(result, [new_height, new_width]);
-          }
-          */
-          // Pad
-          const network_levels = 6;
-          const number_multiple = Math.pow(2, (network_levels-1));
-          const paddings = [
-            [0, number_multiple - tensor_height % number_multiple],
-            [0, number_multiple - tensor_width % number_multiple],
-            [0, 0]
-          ];
-          result = result.pad(paddings);
           return result;
         });
         //console.table( tf.memory() ); 
