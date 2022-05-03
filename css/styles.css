@@ -90,6 +90,15 @@ p {
 #heading {
   text-transform: uppercase;
   letter-spacing: .2rem;
+  text-align: center;
+}
+#subheading {
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
+
+.li-header {
+  margin-bottom: 1rem;
 }
 
 #page {

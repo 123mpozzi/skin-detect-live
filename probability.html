@@ -32,7 +32,6 @@
 
   <!-- JS
   –––––––––––––––––––––––––––––––––––––––––––––––––– -->
-  <script src="https://cdn.jsdelivr.net/pyodide/dev/full/pyodide.js"></script>
   <script src="main.js"></script>
 </head>
 
@@ -48,22 +47,24 @@
         <a href="unet.html">Try U-Net</a>
       </div>
       <div id="page">
-        <h4 id="heading" style="text-align: center;">Probability based skin detector</h4>
+        <h5 id="heading">Probability skin detector</h5>
+        <p id="subheading"><i>on colored images</i></p>
         <div class="main-wrapper">
           <div class="padder"></div>
           <div>
-          <p>
-            Apart from requiring <i>colored images</i>, this live demo has some <b>additional limitations</b>:
-          </p>
-          <ul>
-            <li>Images must be hosted on the same website (use Wikipedia, Imgur, Flickr)</li>
-            <li>Slower: do not use big images</li>
-            <li>Webpage may freeze, do not refresh</li>
-          </ul>
-          <p>
-            Also take note that <i>filtered images</i> are bad because the colors are altered
-          </p>
-          </div>
+            <p class="li-header">
+              <b>Limitations</b> of the Live Demo:
+            </p>
+            <ul>
+              <li>Images must be hosted on the same website (use Wikipedia, Imgur, Flickr)</li>
+              <li>Images will be resized 352x352</li>
+            </ul>
+            <p>
+              <b>Performance depends on your hardware</b>
+              <br />
+              Also take note that <i>filtered images</i> are bad because the colors are altered
+            </p>
+            </div>
           <p id="info">STATUS - Ready, Waiting input</p>
           <div class="u-full-width search-form" >
             <div id="url-container" class="six columns" >
