@@ -40,6 +40,7 @@ function getSamples() {
 
 // Utilities
 
+// Whether the given URL is valid
 function isValidHttpUrl(string) {
   let url;
   
@@ -51,7 +52,7 @@ function isValidHttpUrl(string) {
 
   return url.protocol === "http:" || url.protocol === "https:";
 }
-
+// Change status message (and also print to console)
 function info(string) {
   console.log(string)
   document.getElementById("info").innerText = "STATUS - " + string
@@ -67,10 +68,13 @@ function setImageURL(url) {
 
 // Credit to @justadudewhohacks
 // https://github.com/tensorflow/tfjs/issues/604#issuecomment-416135683
+// Resize image into a square of dimension (inputSize x inputSize), with
+// black paddings to the right if necessary
 function imageToSquare(img, inputSize) {
   const dims = img instanceof HTMLImageElement 
     ? { width: img.naturalWidth, height: img.naturalHeight }
-    : img 
+    : img;
+  
   const scale = inputSize / Math.max(dims.height, dims.width)
   const width = scale * dims.width
   const height = scale * dims.height
@@ -82,11 +86,29 @@ function imageToSquare(img, inputSize) {
 
   return targetCanvas
 }
+// Resize image to have the maximum dimension equal to inputSize 
+// while keeping the aspect ratio 
+function imageToMax(img, inputSize) {
+  const dims = img instanceof HTMLImageElement 
+    ? { width: img.naturalWidth, height: img.naturalHeight }
+    : img;
+  
+  const scale = inputSize / Math.max(dims.height, dims.width)
+  const width = scale * dims.width
+  const height = scale * dims.height
+
+  const targetCanvas = document.createElement('canvas')
+  targetCanvas .width = width
+  targetCanvas .height = height
+  targetCanvas.getContext('2d').drawImage(img, 0, 0, width, height)
+
+  return targetCanvas
+}
 
 
 // Functions to fetch and set image size from URL (or tensorflow cannot create tensors)
 
-let tries = 0;
+let tries = 0; // tries to GET image
 // onError on GET request of image URL, use a sample image 
 function onError() {
   tries = tries +1;
@@ -104,11 +126,12 @@ function onError() {
   this.src = url;
   setImageURL(url);
 }
+// After image src is loaded, continue skin detection 
 function onLoad() {
   // wait img to load src or else TensorFlow do not know image size and fails
   skinDetectContinue(this.pyodideWorker);
-  tries = 0;
 }
+// Get img metadata (size) from url
 function getMeta(img, url, pyodideWorker){
   img.pyodideWorker = pyodideWorker; // append web worker to the object data
   img.addEventListener("load", onLoad);
@@ -149,7 +172,7 @@ function initPyodide(pyodideWorkerSrc) {
   return pyodideWorker
 }
 
-// Ask the js worker to skin detect
+// Ask the js worker to init skin detection
 function skinDetect(pyodideWorker) {
   const img_ori = document.getElementById("imgbox-ori");
   // check if URL is valid
@@ -165,20 +188,26 @@ function skinDetect(pyodideWorker) {
   getMeta(img_ori, img_url, pyodideWorker);
 }
 
+const pyodideMaxImageSize = 352;
+// After img src is loaded, run skin detection
 function skinDetectContinue(pyodideWorker) {
   // remove previous event listener or it will lag after setting img src
   const img_ori = document.getElementById("imgbox-ori");
   img_ori.removeEventListener("load", onLoad);
   img_ori.removeEventListener("error", onError);
 
+  const img_canvas = imageToMax(img_ori, pyodideMaxImageSize);
+  const ori_data = img_canvas.toDataURL("image/jpeg", 1);
+
   let id = 1;
 
+  // pass base64 data of the img and predefined samples to web worker
   const context = {
     sample_list: getSamples(),
-    img_url: getImageURL(),
+    ori_data: ori_data,
   };
 
-  // request skin detect
+  // Request skin detection
   pyodideWorker.postMessage({
     ...context,
     id,
@@ -215,4 +244,11 @@ function updateSlider(results) {
   imgbox_el.style.clipPath = "polygon(0 0," + slideValue + "% 0," + slideValue + "% 100%, 0 100%)";
 
   slidercont_el.style.visibility = "visible";
+
+  if (tries > 0) {
+    info('Finish with sample image (invalid url)');
+  } else {
+    info('Finish');
+  }
+  tries = 0;
 }

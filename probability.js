@@ -1,8 +1,3 @@
-// webworker.js
-
-// Setup your project to serve `py-worker.js`. You should also serve
-// `pyodide.js`, and all its associated `.asm.js`, `.data`, `.json`,
-// and `.wasm` files as well:
 importScripts("https://cdn.jsdelivr.net/pyodide/dev/full/pyodide.js");
 
 const python_fetchmodel = `
@@ -37,17 +32,28 @@ const python_skindetect = `
 from PIL import Image
 import os
 import random
-from js import info, img_url
+from js import info, ori_data
 import base64
 from io import BytesIO
 from pyodide.http import pyfetch
 from livedemo import probability, samples
+import re
 
 print(f'Running Pillow Image version: {Image.__version__}')
 
-def open_image(src):
-  # Convert to RGB as some image may be read as RGBA: https://stackoverflow.com/a/54713582
-  return Image.open(src,'r').convert('RGB')
+def open_image(b64js):
+  '''
+  Credits to answers at https://stackoverflow.com/q/26070547
+
+  There is a metadata prefix of data:image/jpeg;base64, being included in 
+  the img field. Normally this metadata is used in a CSS or HTML data URI 
+  when embedding image data into the document or stylesheet.
+
+  Also convert to RGB as some image may be read as RGBA: 
+  https://stackoverflow.com/a/54713582
+  '''
+  image_data = re.sub('^data:image/.+;base64,', '', b64js)
+  return Image.open(BytesIO(base64.b64decode(image_data))).convert('RGB')
 
 def create_image(im: Image, probability, out_p) -> float:
     im.load()
@@ -66,9 +72,9 @@ def create_image(im: Image, probability, out_p) -> float:
     #im.save(out_p)
     return im
 
-def skin_detect(image_in: str, image_out: str, probability):
+def skin_detect(data_in: str, image_out: str, probability):
   try:
-    source = open_image(image_in)
+    source = open_image(data_in)
   except:
     exit('No input image found')
 
@@ -78,36 +84,14 @@ def skin_detect(image_in: str, image_out: str, probability):
   return bw_final, source
 
 
-# Download the given image to virtual file system
-tries = 0
-while True: # keep trying till getting a valid image
-  if tries > 0:
-    info(f'Try #{tries+1}')
-  elif tries > 6:
-    info(f'Cannot fetch any image!')
-    break
-  try:
-    response = await pyfetch(img_url, redirect = 'follow')
-    if response.status == 200:
-      filename = os.path.basename(response.url)
-      with open(filename, "wb") as f:
-        f.write(await response.bytes())
-      info('Image fetched')
-      break
-  except:
-    info('Error on the given image, trying on a random image instead')
-    img_url = random.choice(samples)
-    tries = tries +1
-
-
 # Run skin detector
 out_img = 'img.png'
 
-try:
-  outcome, origin = skin_detect(filename, out_img, probability)
-  info('Skin detector ran without issues')
-except:
-  info('Error while detecting skin, please try again with a different image')
+#try:
+outcome, origin = skin_detect(ori_data, out_img, probability)
+info('Skin detector ran without issues')
+#except:
+#  info('Error while detecting skin, please try again with a different image')
 
 info('Encoding image')
 
@@ -115,11 +99,6 @@ info('Encoding image')
 buffered = BytesIO()
 outcome.save(buffered, format="PNG")
 img_data = base64.b64encode(buffered.getvalue()).decode()
-
-if tries > 0:
-  info('Finish with sample image (invalid url)')
-else:
-  info('Finish')
 
 # Return original image
 buffered = BytesIO()
@@ -170,18 +149,18 @@ self.onmessage = async (event) => {
 
     const probability = self.probability;
     const samples = self.sample_list;
-    const img_url = self.img_url; // img_url will be imported directly from js
+    const ori_data = self.ori_data; // img_url will be imported directly from js
     // livedemo contains STATIC variables: the imported content in python will not change on re-register
     self.pyodide.registerJsModule("livedemo", {probability, samples});
     info('Running script...');
 
     await self.pyodide.runPythonAsync(python_skindetect);
     const img_data = self.pyodide.globals.get("img_data");
-    const ori_data = self.pyodide.globals.get("ori_data");
+    const ori_data_post = self.pyodide.globals.get("ori_data");
     const image_width = self.pyodide.globals.get("image_width");
     const image_height = self.pyodide.globals.get("image_height");
 
-    self.postMessage({ results: [img_data, ori_data, image_width, image_height], id });
+    self.postMessage({ results: [img_data, ori_data_post, image_width, image_height], id });
 
     // clean memory
     //img_data.destroy();

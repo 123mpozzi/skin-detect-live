@@ -103,7 +103,6 @@
     const square_size = 256;
 
 
-
     // Load Model
     
     async function loadModel() {
@@ -146,7 +145,7 @@
       // Fetch image
       info('Fetching image...');
       const img_url = document.getElementById("name").value;
-      getMeta(img_ori, img_url);
+      getMeta(img_ori, img_url, null);
     }
 
     async function skinDetectContinue() {
