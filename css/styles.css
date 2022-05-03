@@ -17,6 +17,9 @@ p {
 .padder {
   height: 2rem;
 }
+.padder-horiz {
+  width: 40px;
+}
 
 .no-margin-bottom {
   margin-bottom: 0;
@@ -138,6 +141,11 @@ button:hover {
 }
 input[type="search"]:focus {
   border-color: var(--color-primary) !important;
+}
+
+#run {
+  margin-left: 0;
+  margin-bottom: 30px;
 }
 
 /*

@@ -70,17 +70,16 @@
             <div id="url-container" class="six columns" >
               <input id="name" name="name" class="two-thirds column" type="search" 
               placeholder="Paste an image URL">
-              <span style="width: 40px;"></span>
+              <span class="padder-horiz"></span>
               <span id="randomness" class="one columns"
               onclick="insertRandom()"></span>
             </div>
-            <button class="one-half column button-primary"
-            style="margin-left: 0; margin-bottom: 30px;"
-            onclick="skinDetect()">Detect Skin</button>
+            <button id="run" class="one-half column button-primary"
+            onclick="skinDetect(pyodideWorker)">Detect Skin</button>
           </div>
           <div id="slider-container" class="u-full-width">
-            <img id="imgbox-ori" alt="Waiting for detection..." title="Original image" />
-            <img id="imgbox" alt="Waiting for detection..." title="Detected skin pixels" />
+            <img id="imgbox-ori" alt="Waiting for detection..." title="Original image" crossorigin='anonymous' />
+            <img id="imgbox" alt="Waiting for detection..." title="Detected skin pixels" crossorigin='anonymous' />
             <input type="range" min="0" max="100" value="50" id="slider" oninput="slide()">
           </div>
         </div>
@@ -97,113 +96,8 @@
   <!-- Pyodide
   –––––––––––––––––––––––––––––––––––––––––––––––––– -->
   <script type="text/javascript">
-    let pyodideWorker;
-    const info_elem = document.getElementById('info');
-
-    function getImageURL() { 
-      return document.getElementById("name").value
-    };
-
-    function info(string) {
-      console.log(string)
-      info_elem.innerText = "STATUS - " + string
-      // TODO: Force element redraw
-    }
-
-    function isValidHttpUrl(string) {
-      let url;
-      
-      try {
-        url = new URL(string);
-      } catch (_) {
-        return false;  
-      }
-
-      return url.protocol === "http:" || url.protocol === "https:";
-    }
-
-    async function main() {
-      document.getElementById('info').innerText = 'STATUS - Loading python...'
-      pyodideWorker = new Worker("/probability.js");
-
-      // identify a Promise
-      let id = 0; // ID=0 : init python and pyodide
-
-      pyodideWorker.onmessage = (event) => {
-        const { id, ...data } = event.data;
-
-        if (data.info !== undefined) {
-          info(data.info);
-        }
-        if (data.error !== undefined) {
-          console.log(data.error);
-        }
-        if (data.results !== undefined) {
-          updateSlider(data.results);
-        }
-      };
-
-      // init python and pyodide
-      pyodideWorker.postMessage({
-        ...{},
-        id,
-      });
-    }
-    
-    async function skinDetect(){
-      // check if URL is valid
-      document.getElementById('info').innerText = 'STATUS - Checking URL...'
-      if (!isValidHttpUrl(getImageURL())) {
-        document.getElementById('info').innerText = 'STATUS - Invalid URL. Does it start with https:// ?'
-        return;
-      }
-
-      let id = 1;
-
-      const context = {
-        sample_list: getSamples(),
-        img_url: getImageURL(),
-      };
-
-      // request skin detect
-      pyodideWorker.postMessage({
-        ...context,
-        id,
-      });
-    }
-
-    // Update img(s), slider, and slider container HTML elements with results of skin detection 
-    async function updateSlider(results) {
-      const img_data = results[0];
-      const ori_data = results[1];
-      const image_width = results[2];
-      const image_height = results[3];
-
-      // TODO: fix, images do not change after 1st inference !! also in thresh!
-
-      // Update widths
-      document.getElementById("imgbox").style.width = String(image_width) + 'px';
-      document.getElementById("imgbox-ori").style.width = String(image_width) + 'px';
-      document.getElementById("slider").style.width = String(image_width+50) + 'px';
-      // Update heights
-      document.getElementById("imgbox").style.height = String(image_height) + 'px';
-      document.getElementById("imgbox-ori").style.height = String(image_height) + 'px';
-      document.getElementById("slider").style.height = String(image_height) + 'px';
-      document.getElementById("slider-container").style.height = String(image_height+50) + 'px';
-
-      document.getElementById("imgbox").src = "data:image/png;base64," + img_data;
-      document.getElementById("imgbox-ori").src = "data:image/png;base64," + ori_data;
-      console.log("Image replaced with predicted data");
-
-      // init comparison slider transparency
-      let slideValue = document.getElementById("slider").value;
-      document.getElementById("imgbox").style.clipPath = "polygon(0 0," + slideValue + "% 0," + slideValue + "% 100%, 0 100%)";
-
-      document.getElementById("slider-container").style.visibility = "visible";
-    }
-
     // init python and pyodide
-    main();
+    let pyodideWorker = initPyodide('/probability.js');
   </script>
 
 <!-- End Document

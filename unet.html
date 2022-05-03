@@ -69,18 +69,11 @@
             <div id="url-container" class="six columns" >
               <input id="name" name="name" class="two-thirds column" type="search" 
               placeholder="Paste an image URL">
-              <span style="width: 40px;"></span>
+              <span class="padder-horiz"></span>
               <span id="randomness" class="one columns"
               onclick="insertRandom()"></span>
             </div>
-            <!-- FORCE CPU checkbox
-            <div class="six columns cpu-checkbox">
-              <input type="checkbox" id="cpu" name="cpu" value="cpu">
-              <label for="cpu">Force CPU backend</label>
-            </div>
-            -->
-            <button class="one-half column button-primary"
-            style="margin-left: 0; margin-bottom: 30px;"
+            <button id="run" class="one-half column button-primary"
             onclick="skinDetect()">Detect Skin</button>
           </div>
           <div id="slider-container" class="u-full-width">
@@ -116,7 +109,6 @@
     // onError in image URL, use a sample image 
     function onError() {
       tries = tries +1;
-      const sample_list = getSamples();
       if (tries > 0) {
         info('Try #{}'.replace('{}', String(tries+1)));
       }
@@ -125,7 +117,7 @@
         return
       }
       info('Error on the given image, trying on a random image instead');
-      url = sample_list[Math.floor(Math.random()*sample_list.length)];
+      url = getRandomSample();
       this.src = url;
       document.getElementById("name").value = url;
     }
@@ -140,42 +132,6 @@
       img.src = url;
     }
 
-
-    // Utilities
-
-    function isValidHttpUrl(string) {
-      let url;
-      
-      try {
-        url = new URL(string);
-      } catch (_) {
-        return false;  
-      }
-
-      return url.protocol === "http:" || url.protocol === "https:";
-    }
-    function info(string) {
-      console.log(string)
-      info_elem.innerText = "STATUS - " + string
-      // TODO: Force element redraw
-    }
-    // Credit to @justadudewhohacks
-    // https://github.com/tensorflow/tfjs/issues/604#issuecomment-416135683
-    function imageToSquare(img, inputSize) {
-      const dims = img instanceof HTMLImageElement 
-        ? { width: img.naturalWidth, height: img.naturalHeight }
-        : img 
-      const scale = inputSize / Math.max(dims.height, dims.width)
-      const width = scale * dims.width
-      const height = scale * dims.height
-
-      const targetCanvas = document.createElement('canvas')
-      targetCanvas .width = inputSize
-      targetCanvas .height = inputSize
-      targetCanvas.getContext('2d').drawImage(img, 0, 0, width, height)
-
-      return targetCanvas
-    }
 
 
     // Load Model
