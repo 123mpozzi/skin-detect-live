@@ -60,7 +60,10 @@ function info(string) {
 
 function getImageURL() { 
   return document.getElementById("name").value
-};
+}
+function setImageURL(url) {
+  document.getElementById("name").value = url;
+}
 
 // Credit to @justadudewhohacks
 // https://github.com/tensorflow/tfjs/issues/604#issuecomment-416135683
@@ -81,12 +84,45 @@ function imageToSquare(img, inputSize) {
 }
 
 
+// Functions to fetch and set image size from URL (or tensorflow cannot create tensors)
+
+let tries = 0;
+// onError on GET request of image URL, use a sample image 
+function onError() {
+  tries = tries +1;
+
+  if (tries > 0) {
+    info('Try #{}'.replace('{}', String(tries+1)));
+  }
+  else if (tries > 6) {
+    info('Cannot fetch any image!');
+    return
+  }
+
+  info('Error on the given image, trying on a random image instead');
+  url = getRandomSample();
+  this.src = url;
+  setImageURL(url);
+}
+function onLoad() {
+  // wait img to load src or else TensorFlow do not know image size and fails
+  skinDetectContinue(this.pyodideWorker);
+  tries = 0;
+}
+function getMeta(img, url, pyodideWorker){
+  img.pyodideWorker = pyodideWorker; // append web worker to the object data
+  img.addEventListener("load", onLoad);
+  img.addEventListener("error", onError);
+  
+  img.src = url;
+}
+
+
 // Pyodide Detectors
 
 // Ask the js worker to init python
-function initPyodide(workerSrc) {
-  let pyodideWorker = new Worker(workerSrc);
-
+function initPyodide(pyodideWorkerSrc) {
+  let pyodideWorker = new Worker(pyodideWorkerSrc);
   // identify a Promise
   let id = 0; // ID=0 : init python and pyodide
 
@@ -115,14 +151,25 @@ function initPyodide(workerSrc) {
 
 // Ask the js worker to skin detect
 function skinDetect(pyodideWorker) {
+  const img_ori = document.getElementById("imgbox-ori");
   // check if URL is valid
-  //document.getElementById('info').innerText = 'STATUS - Checking URL...'
   info('Checking URL...')
   if (!isValidHttpUrl(getImageURL())) {
     info('Invalid URL. Does it start with https:// ?')
     //document.getElementById('info').innerText = 'STATUS - Invalid URL. Does it start with https:// ?'
     return;
   }
+  // Fetch image
+  info('Fetching image...');
+  const img_url = getImageURL();
+  getMeta(img_ori, img_url, pyodideWorker);
+}
+
+function skinDetectContinue(pyodideWorker) {
+  // remove previous event listener or it will lag after setting img src
+  const img_ori = document.getElementById("imgbox-ori");
+  img_ori.removeEventListener("load", onLoad);
+  img_ori.removeEventListener("error", onError);
 
   let id = 1;
 
