@@ -74,7 +74,7 @@
               onclick="insertRandom()"></span>
             </div>
             <button id="run" class="one-half column button-primary"
-            onclick="skinDetect()">Detect Skin</button>
+            onclick="skinDetectTf(webWorker)">Detect Skin</button>
           </div>
           <div id="slider-container" class="u-full-width">
             <img id="imgbox-ori" alt="Waiting for detection..." title="Original image" crossorigin='anonymous' />
@@ -101,7 +101,16 @@
     let model;
     const modelURL = './models/web_model-20210428-155148/model.json';
     const square_size = 256;
+    let webWorker = null;
+    const debugMemory = false;
 
+
+    // Utilities
+
+    // Print GPU memory usage (tensors, bytes)
+    function printMemory() {
+      if (debugMemory) self.postMessage({ table: tf.memory() });
+    }
 
     // Load Model
     
@@ -121,13 +130,27 @@
       model = await loadModel();
       warmupModel(model);
       info('Ready, Waiting input');
-      //console.table( tf.memory() );
+      printMemory();
     }
 
 
     // Skin Detect
 
-    async function skinDetect() {
+    async function skinDetectTf(webWorker) {
+      if (canIUseOffscreenCanvas()) {
+        info('Using web workers')
+        if (webWorker === null) webWorker = initWorker('/unet.js');
+        skinDetect(webWorker);
+        return
+      }
+      else { // cannot use web workers: use main thread
+        info('Using main thread')
+        skinDetectMain();
+        return
+      }
+    }
+
+    async function skinDetectMain() {
       info('Using backend: ' + tf.getBackend());
       // This fixes GPU memory leak (bytes), but inference is slower
       if (tf.getBackend() === 'webgl')
@@ -148,7 +171,17 @@
       getMeta(img_ori, img_url, null);
     }
 
-    async function skinDetectContinue() {
+    async function skinDetectContinue(webWorker) {
+      if (webWorker !== null) {
+        skinDetectContinueWorker(webWorker);
+        return
+      }
+      else { // cannot use web workers: use main thread
+        skinDetectContinueMain();
+        return
+      }
+    }
+    async function skinDetectContinueMain() {
       // remove previous event listener or it will lag after setting img src
       img_ori.removeEventListener("load", onLoad);
       img_ori.removeEventListener("error", onError);
@@ -162,11 +195,9 @@
           let result = tf.browser.fromPixels(squared_image); // img in 0-255
           // Normalize to 0-1
           result = result.cast('float32').div(tf.scalar(255));
-          const tensor_height = result.shape[0];
-          const tensor_width = result.shape[1];
           return result;
         });
-        //console.table( tf.memory() ); 
+        printMemory();
         
         // Save pre-processed original image
         const canvas_ori = document.createElement('canvas');
@@ -197,39 +228,41 @@
         outcome.dataSync(); // clean GPU
         tf.dispose(outcome);
         const img_data = canvas.toDataURL() // will return the base64 encoding
-        img_pred.style.width = String(image_width) + 'px';
-        img_pred.style.height = String(image_height) + 'px';
-        img_pred.src = img_data;
-        // encode original image
-        img_ori.style.width = String(image_width) + 'px';
-        img_ori.style.height = String(image_height) + 'px';
-        img_ori.src = ori_data;
 
-        if (tries > 0) {
-          info('Finish with sample image (invalid url)');
-        } else {
-          info('Finish');
-        }
-
-        // Update slider dimensions
-        const slider_width = image_width + 50;
-        document.getElementById("slider").style.width = String(slider_width) + 'px';
-        document.getElementById("slider").style.height = String(image_height) + 'px';
-        const container_height = image_height + 50;
-        document.getElementById("slider-container").style.height = String(container_height) + 'px';
-
-        // Init comparison slider transparency
-        const slideValue = document.getElementById("slider").value;
-        document.getElementById("imgbox").style.clipPath = "polygon(0 0," + slideValue + "% 0," + slideValue + "% 100%, 0 100%)";
-
-        document.getElementById("slider-container").style.visibility = "visible";
+        updateSlider([img_data, ori_data, image_width, image_height]);
       } catch (_) {
         info('Critical: error on predict, refresh and retry');
       }
 
       // clean memory
       //tf.dispose(model);
-      //console.table( tf.memory() ); // TODO: fix memory leak
+      printMemory();
+    }
+    // After img src is loaded, run skin detection
+    function skinDetectContinueWorker(webWorker) {
+      // remove previous event listener or it will lag after setting img src
+      const img_ori = document.getElementById("imgbox-ori");
+      img_ori.removeEventListener("load", onLoad);
+      img_ori.removeEventListener("error", onError);
+
+      const img_canvas = imageToSquare(img_ori, square_size);
+      const ori_data = img_canvas.toDataURL("image/jpeg", 1);
+      const temp_canvas = document.createElement('canvas');
+
+      let id = 1;
+
+      // pass base64 data of the img and predefined samples to web worker
+      const context = {
+        ori_data: ori_data,
+        square_size: square_size,
+        canvas: temp_canvas,
+      };
+
+      // Request skin detection
+      webWorker.postMessage({
+        ...context,
+        id,
+      });
     }
 
     main();

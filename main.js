@@ -66,6 +66,11 @@ function setImageURL(url) {
   document.getElementById("name").value = url;
 }
 
+// IF OffscreenCanvas is not supported, cannot use WebGL in web worker for TensorFlow.js
+function canIUseOffscreenCanvas() {
+  return typeof OffscreenCanvas !== "undefined"
+}
+
 // Credit to @justadudewhohacks
 // https://github.com/tensorflow/tfjs/issues/604#issuecomment-416135683
 // Resize image into a square of dimension (inputSize x inputSize), with
@@ -129,11 +134,11 @@ function onError() {
 // After image src is loaded, continue skin detection 
 function onLoad() {
   // wait img to load src or else TensorFlow do not know image size and fails
-  skinDetectContinue(this.pyodideWorker);
+  skinDetectContinue(this.webWorker);
 }
 // Get img metadata (size) from url
-function getMeta(img, url, pyodideWorker){
-  img.pyodideWorker = pyodideWorker; // append web worker to the object data
+function getMeta(img, url, webWorker){
+  img.webWorker = webWorker; // append web worker to the object data
   img.addEventListener("load", onLoad);
   img.addEventListener("error", onError);
   
@@ -143,13 +148,13 @@ function getMeta(img, url, pyodideWorker){
 
 // Pyodide Detectors
 
-// Ask the js worker to init python
-function initPyodide(pyodideWorkerSrc) {
-  let pyodideWorker = new Worker(pyodideWorkerSrc);
+// Ask the js worker to run init tasks
+function initWorker(workerSrc) {
+  let webWorker = new Worker(workerSrc);
   // identify a Promise
-  let id = 0; // ID=0 : init python and pyodide
+  let id = 0; // ID=0 : init tasks
 
-  pyodideWorker.onmessage = (event) => {
+  webWorker.onmessage = (event) => {
     const { id, ...data } = event.data;
 
     if (data.info !== undefined) {
@@ -161,19 +166,22 @@ function initPyodide(pyodideWorkerSrc) {
     if (data.results !== undefined) {
       updateSlider(data.results);
     }
+    if (data.table !== undefined) {
+      console.table(data.table);
+    }
   };
 
-  // init python and pyodide
-  pyodideWorker.postMessage({
+  // init tasks
+  webWorker.postMessage({
     ...{},
     id,
   });
 
-  return pyodideWorker
+  return webWorker
 }
 
 // Ask the js worker to init skin detection
-function skinDetect(pyodideWorker) {
+function skinDetect(webWorker) {
   const img_ori = document.getElementById("imgbox-ori");
   // check if URL is valid
   info('Checking URL...')
@@ -185,8 +193,9 @@ function skinDetect(pyodideWorker) {
   // Fetch image
   info('Fetching image...');
   const img_url = getImageURL();
-  getMeta(img_ori, img_url, pyodideWorker);
+  getMeta(img_ori, img_url, webWorker);
 }
+
 
 const pyodideMaxImageSize = 352;
 // After img src is loaded, run skin detection
@@ -203,7 +212,6 @@ function skinDetectContinue(pyodideWorker) {
 
   // pass base64 data of the img and predefined samples to web worker
   const context = {
-    sample_list: getSamples(),
     ori_data: ori_data,
   };
 

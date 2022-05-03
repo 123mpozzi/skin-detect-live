@@ -1,3 +1,5 @@
+// Web Worker
+
 importScripts("https://cdn.jsdelivr.net/pyodide/dev/full/pyodide.js");
 
 const python = `
@@ -9,7 +11,6 @@ import random
 from js import info, ori_data
 import base64
 from pyodide.http import pyfetch
-from livedemo import samples
 print(f'Running OpenCV version: {cv2.__version__}')
 
 bins = 256
@@ -358,10 +359,7 @@ self.onmessage = async (event) => {
   try {
     await self.pyodide.loadPackagesFromImports(python);
 
-    const samples = self.sample_list;
     const ori_data = self.ori_data; // original image as base64 will be imported directly from js
-    // livedemo contains STATIC variables: the imported content in python will not change on re-register
-    self.pyodide.registerJsModule("livedemo", {samples});
     info('Running script...');
 
     await self.pyodide.runPythonAsync(python);

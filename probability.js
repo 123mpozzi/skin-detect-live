@@ -1,3 +1,5 @@
+// Web Worker
+
 importScripts("https://cdn.jsdelivr.net/pyodide/dev/full/pyodide.js");
 
 const python_fetchmodel = `
@@ -36,7 +38,7 @@ from js import info, ori_data
 import base64
 from io import BytesIO
 from pyodide.http import pyfetch
-from livedemo import probability, samples
+from livedemo import probability
 import re
 
 print(f'Running Pillow Image version: {Image.__version__}')
@@ -148,10 +150,9 @@ self.onmessage = async (event) => {
     await self.pyodide.loadPackagesFromImports(python_skindetect);
 
     const probability = self.probability;
-    const samples = self.sample_list;
     const ori_data = self.ori_data; // original image as base64 will be imported directly from js
     // livedemo contains STATIC variables: the imported content in python will not change on re-register
-    self.pyodide.registerJsModule("livedemo", {probability, samples});
+    self.pyodide.registerJsModule("livedemo", {probability});
     info('Running script...');
 
     await self.pyodide.runPythonAsync(python_skindetect);
