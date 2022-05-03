@@ -13,7 +13,6 @@ import pandas as pd
 
 
 def read_model(model_csv: str):
-  info("Reading model...")
   probability = pd.read_pickle(model_csv, compression='gzip')
   return probability
 
@@ -38,14 +37,13 @@ const python_skindetect = `
 from PIL import Image
 import os
 import random
-from js import info
+from js import info, img_url
 import base64
 from io import BytesIO
 from pyodide.http import pyfetch
-from livedemo import probability, samples, img_url
+from livedemo import probability, samples
 
 print(f'Running Pillow Image version: {Image.__version__}')
-
 
 def open_image(src):
   # Convert to RGB as some image may be read as RGBA: https://stackoverflow.com/a/54713582
@@ -139,8 +137,7 @@ function info(string) {
 async function loadPyodideAndPackages() {
   info('Loading python...');
   self.pyodide = await loadPyodide();
-  await pyodide.loadPackage("Pillow");
-  await pyodide.loadPackage("pandas");
+  await self.pyodide.loadPackage(["Pillow", "pandas"]);
   info('Ready, Waiting input');
 }
 let pyodideReadyPromise = loadPyodideAndPackages();
@@ -150,15 +147,14 @@ async function fetchModel(){
   await pyodideReadyPromise;
   info('Fetching model...');
   await self.pyodide.runPythonAsync(python_fetchmodel);
+  self.probability = self.pyodide.globals.get("probability");
 
   info('Ready, Waiting input');
-  self.probability = self.pyodide.globals.get("probability");
 }
 let modelReadyPromise = fetchModel();
 
 self.onmessage = async (event) => {
   // make sure loading is done
-  //await pyodideReadyPromise;
   await modelReadyPromise;
   
   const { id, ...context } = event.data;
@@ -174,11 +170,11 @@ self.onmessage = async (event) => {
 
     const probability = self.probability;
     const samples = self.sample_list;
-    const img_url = self.img_url;
-    pyodide.registerJsModule("livedemo", {probability, samples, img_url});
+    const img_url = self.img_url; // img_url will be imported directly from js
+    // livedemo contains STATIC variables: the imported content in python will not change on re-register
+    self.pyodide.registerJsModule("livedemo", {probability, samples});
     info('Running script...');
 
-    //let results = await self.pyodide.runPythonAsync(python);
     await self.pyodide.runPythonAsync(python_skindetect);
     const img_data = self.pyodide.globals.get("img_data");
     const ori_data = self.pyodide.globals.get("ori_data");

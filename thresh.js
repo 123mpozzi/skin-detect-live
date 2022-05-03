@@ -11,10 +11,10 @@ import numpy as np
 from math import ceil
 import os
 import random
-from js import info
+from js import info, img_url
 import base64
 from pyodide.http import pyfetch
-from livedemo import samples, img_url
+from livedemo import samples
 print(f'Running OpenCV version: {cv2.__version__}')
 
 
@@ -374,11 +374,11 @@ self.onmessage = async (event) => {
     await self.pyodide.loadPackagesFromImports(python);
 
     const samples = self.sample_list;
-    const img_url = self.img_url;
-    pyodide.registerJsModule("livedemo", {samples, img_url});
+    const img_url = self.img_url; // img_url will be imported directly from js
+    // livedemo contains STATIC variables: the imported content in python will not change on re-register
+    self.pyodide.registerJsModule("livedemo", {samples});
     info('Running script...');
 
-    //let results = await self.pyodide.runPythonAsync(python);
     await self.pyodide.runPythonAsync(python);
     const img_data = self.pyodide.globals.get("img_data");
     const ori_data = self.pyodide.globals.get("ori_data");
