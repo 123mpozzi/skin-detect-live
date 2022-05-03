@@ -87,11 +87,11 @@ def skin_detect(data_in: str, image_out: str, probability):
 # Run skin detector
 out_img = 'img.png'
 
-#try:
-outcome, origin = skin_detect(ori_data, out_img, probability)
-info('Skin detector ran without issues')
-#except:
-#  info('Error while detecting skin, please try again with a different image')
+try:
+  outcome, origin = skin_detect(ori_data, out_img, probability)
+  info('Skin detector ran without issues')
+except:
+  info('Error while detecting skin, please try again with a different image')
 
 info('Encoding image')
 
@@ -149,7 +149,7 @@ self.onmessage = async (event) => {
 
     const probability = self.probability;
     const samples = self.sample_list;
-    const ori_data = self.ori_data; // img_url will be imported directly from js
+    const ori_data = self.ori_data; // original image as base64 will be imported directly from js
     // livedemo contains STATIC variables: the imported content in python will not change on re-register
     self.pyodide.registerJsModule("livedemo", {probability, samples});
     info('Running script...');

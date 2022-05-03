@@ -6,12 +6,11 @@ import numpy as np
 from math import ceil
 import os
 import random
-from js import info, img_url
+from js import info, ori_data
 import base64
 from pyodide.http import pyfetch
 from livedemo import samples
 print(f'Running OpenCV version: {cv2.__version__}')
-
 
 bins = 256
 tolCr = 1
@@ -20,6 +19,7 @@ hist_size = (bins, bins)
 ranges1 = (0, 255)
 ranges2 = (0, 255)
 ranges = (ranges1, ranges2)
+
 #  sort of the histogram
 def sortHist(iBins: list, values: list, num: int):
   tmpN = num
@@ -163,9 +163,9 @@ def calculateHist2(plane1, plane2):
   img = np.dstack((plane1,plane2))
   return cv2.calcHist([img], [0, 1], None, [256, 256], [0, 256, 0, 256])
 #  TODO: improve precision with more consistent data types
-def skin_detect(image_in: str, image_out: str):
+def skin_detect(data_in: str, image_out: str):
   '''
-  Detect skin pixels in image_in and save the result into a 
+  Detect skin pixels in data_in and save the result into a 
   file named like image_out   
   '''
   CrMin = float(133)
@@ -173,7 +173,7 @@ def skin_detect(image_in: str, image_out: str):
   CbMin = float(77)
   CbMax = float(128)
   try:
-    source = cv2.imread(image_in, cv2.IMREAD_COLOR)
+    source = readb64(data_in) # cv2.imread(data_in, cv2.IMREAD_COLOR)
   except:
     exit('No input image found')
   
@@ -300,30 +300,22 @@ def skin_detect(image_in: str, image_out: str):
   #cv2.imwrite(image_out, bw_final)
   return bw_final, source
 
-# Download the given image to virtual file system
-tries = 0
-while True: # keep trying till getting a valid image
-  if tries > 0:
-    info(f'Try #{tries+1}')
-  elif tries > 6:
-    info(f'Cannot fetch any image!')
-    break
-  try:
-    response = await pyfetch(img_url, redirect = 'follow')
-    if response.status == 200:
-      filename = os.path.basename(response.url)
-      with open(filename, "wb") as f:
-        f.write(await response.bytes())
-      info('Image fetched')
-      break
-  except:
-    info('Error on the given image, trying on a random image instead')
-    img_url = random.choice(samples)
-    tries = tries +1
+
+
+def readb64(uri):
+  '''
+  Credit to https://stackoverflow.com/a/54205640
+  Read the base64 string img from js (no need to
+  strip the prefix data:image/jpeg;base64)
+  '''
+  encoded_data = uri.split(',')[1]
+  nparr = np.frombuffer(base64.b64decode(encoded_data), np.uint8)
+  img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+  return img
 
 # Run skin detector
 try:
-  outcome, origin = skin_detect(filename, 'img.png')
+  outcome, origin = skin_detect(ori_data, 'img.png')
   info('Skin detector ran without issues')
 except:
   info('Error while detecting skin, please try again with a different image')
@@ -331,12 +323,10 @@ info('Encoding image')
 
 # Return image as base64 encoded string
 img_data = base64.b64encode(cv2.imencode('.png', outcome)[1]).decode()
-if tries > 0:
-  info('Finish with sample image (invalid url)')
-else:
-  info('Finish')
+
 # Return original image
 ori_data = base64.b64encode(cv2.imencode('.png', origin)[1]).decode()
+
 image_height, image_width, image_channels = outcome.shape
 `;
 
@@ -369,18 +359,18 @@ self.onmessage = async (event) => {
     await self.pyodide.loadPackagesFromImports(python);
 
     const samples = self.sample_list;
-    const img_url = self.img_url; // img_url will be imported directly from js
+    const ori_data = self.ori_data; // original image as base64 will be imported directly from js
     // livedemo contains STATIC variables: the imported content in python will not change on re-register
     self.pyodide.registerJsModule("livedemo", {samples});
     info('Running script...');
 
     await self.pyodide.runPythonAsync(python);
     const img_data = self.pyodide.globals.get("img_data");
-    const ori_data = self.pyodide.globals.get("ori_data");
+    const ori_data_post = self.pyodide.globals.get("ori_data");
     const image_width = self.pyodide.globals.get("image_width");
     const image_height = self.pyodide.globals.get("image_height");
 
-    self.postMessage({ results: [img_data, ori_data, image_width, image_height], id });
+    self.postMessage({ results: [img_data, ori_data_post, image_width, image_height], id });
 
     // clean memory
     //img_data.destroy();
