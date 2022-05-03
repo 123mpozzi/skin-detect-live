@@ -99,6 +99,10 @@
     let pyodideWorker;
     const info_elem = document.getElementById('info');
 
+    function getImageURL() { 
+      return document.getElementById("name").value
+    };
+
     function info(string) {
       console.log(string)
       info_elem.innerText = "STATUS - " + string
@@ -120,8 +124,6 @@
       document.getElementById('info').innerText = 'STATUS - Loading python...'
       pyodideWorker = new Worker("/thresh.js");
 
-
-      //let id = 1 % Number.MAX_SAFE_INTEGER;
       // identify a Promise
       let id = 0; // ID=0 : init python and pyodide
 
@@ -144,34 +146,12 @@
         ...{},
         id,
       });
-
-      /*
-      const context = {
-        sample_list: getSamples(),
-      };
-
-      // request skin detect
-      pyodideWorker.postMessage({
-        ...context,
-        id,
-      });*/
     }
-
-    /*
-    // Init Pyodide
-    async function initPyodide() {
-      document.getElementById('info').innerText = 'STATUS - Loading python...'
-      let pyodide = await loadPyodide();
-      await pyodide.loadPackage("opencv-python");
-      document.getElementById('info').innerText = 'STATUS - Ready, Waiting input'
-      return pyodide;
-    }*/
-    //let pyodideReadyPromise = initPyodide();
 
     async function skinDetect(){
       // check if URL is valid
       document.getElementById('info').innerText = 'STATUS - Checking URL...'
-      if (!isValidHttpUrl(document.getElementById("name").value)) {
+      if (!isValidHttpUrl(getImageURL())) {
         document.getElementById('info').innerText = 'STATUS - Invalid URL. Does it start with https:// ?'
         return;
       }
@@ -180,7 +160,7 @@
 
       const context = {
         sample_list: getSamples(),
-        img_url: document.getElementById("name").value,
+        img_url: getImageURL(),
       };
 
       // request skin detect
@@ -188,29 +168,24 @@
         ...context,
         id,
       });
-
-
-      //document.getElementById('info').innerText = 'STATUS - Running script...'
-      
-      
-      /*
-      img_data = pyodide.globals.get("img_data");
-      ori_data = pyodide.globals.get("ori_data");
-
-      document.getElementById("imgbox").src = "data:image/png;base64," + img_data;
-      document.getElementById("imgbox-ori").src = "data:image/png;base64," + ori_data;
-      console.log("Image replaced with predicted data");
-
-      // init comparison slider transparency
-      let slideValue = document.getElementById("slider").value;
-      document.getElementById("imgbox").style.clipPath = "polygon(0 0," + slideValue + "% 0," + slideValue + "% 100%, 0 100%)";
-
-      document.getElementById("slider-container").style.visibility = "visible";*/
     }
 
+    // Update img(s), slider, and slider container HTML elements with results of skin detection 
     async function updateSlider(results) {
-      img_data = results[0];
-      ori_data = results[1];
+      const img_data = results[0];
+      const ori_data = results[1];
+      const image_width = results[2];
+      const image_height = results[3];
+
+      // Update widths
+      document.getElementById("imgbox").style.width = String(image_width) + 'px';
+      document.getElementById("imgbox-ori").style.width = String(image_width) + 'px';
+      document.getElementById("slider").style.width = String(image_width+50) + 'px';
+      // Update heights
+      document.getElementById("imgbox").style.height = String(image_height) + 'px';
+      document.getElementById("imgbox-ori").style.height = String(image_height) + 'px';
+      document.getElementById("slider").style.height = String(image_height) + 'px';
+      document.getElementById("slider-container").style.height = String(image_height+50) + 'px';
 
       document.getElementById("imgbox").src = "data:image/png;base64," + img_data;
       document.getElementById("imgbox-ori").src = "data:image/png;base64," + ori_data;
@@ -222,6 +197,8 @@
 
       document.getElementById("slider-container").style.visibility = "visible";
     }
+
+    // init python and pyodide
     main();
   </script>
 

@@ -319,7 +319,7 @@ while True: # keep trying till getting a valid image
       filename = os.path.basename(response.url)
       with open(filename, "wb") as f:
         f.write(await response.bytes())
-      info('Image successfully written to virtual file system')
+      info('Image fetched')
       break
   except:
     info('Error on the given image, trying on a random image instead')
@@ -343,15 +343,6 @@ else:
 # Return original image
 ori_data = base64.b64encode(cv2.imencode('.png', origin)[1]).decode()
 image_height, image_width, image_channels = outcome.shape
-# Update widths
-#js.document.getElementById("imgbox").style.width = f'{image_width}px'
-#js.document.getElementById("imgbox-ori").style.width = f'{image_width}px'
-#js.document.getElementById("slider").style.width = f'{image_width+50}px'
-# Update heights
-#js.document.getElementById("imgbox").style.height = f'{image_height}px'
-#js.document.getElementById("imgbox-ori").style.height = f'{image_height}px'
-#js.document.getElementById("slider").style.height = f'{image_height}px'
-#js.document.getElementById("slider-container").style.height = f'{image_height+50}px'
 `;
 
 function info(string) {
@@ -391,8 +382,10 @@ self.onmessage = async (event) => {
     await self.pyodide.runPythonAsync(python);
     const img_data = self.pyodide.globals.get("img_data");
     const ori_data = self.pyodide.globals.get("ori_data");
+    const image_width = self.pyodide.globals.get("image_width");
+    const image_height = self.pyodide.globals.get("image_height");
 
-    self.postMessage({ results: [img_data, ori_data], id });
+    self.postMessage({ results: [img_data, ori_data, image_width, image_height], id });
 
     // clean memory
     //img_data.destroy();
