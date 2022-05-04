@@ -66,6 +66,7 @@ self.onmessage = async (event) => {
 
   // make sure loading is done
   await modelWarmupPromise;
+  self.postMessage({ ready: true, id });
   
   if (id == 0) return; // request to just run init tasks
 

@@ -224,6 +224,10 @@ function initWorker(workerSrc) {
   webWorker.onmessage = async (event) => {
     const { id, ...data } = event.data;
 
+    // update canRun flag
+    if (data.ready !== undefined) {
+      canRun = true;
+    }
     // update status message
     if (data.info !== undefined) {
       info(data.info);
@@ -288,6 +292,8 @@ function initWorker(workerSrc) {
 
 /** Whether there is already a skin detection task running */
 let running = false;
+/** Whether skin detection init tasks have already been executed */
+let canRun = false;
 /**
  * Ask the js worker to init skin detection:
  * check URL validity and fetch the image
@@ -295,7 +301,7 @@ let running = false;
  * @returns Returns early if the URL in the search input is not valid
  */
 function skinDetect(webWorker) {
-  if (running) return; // prevent users from spamming clicks on "Skin Detect" button
+  if (!canRun || running) return; // prevent users from spamming clicks on "Skin Detect" button
   running = true;
 
   const img_ori = document.getElementById("imgbox-ori");
@@ -304,6 +310,7 @@ function skinDetect(webWorker) {
   info('Checking URL...')
   if (!isValidHttpUrl(getImageURL())) {
     info('Invalid URL. Does it start with https:// ?')
+    running = false; // early stop
     return;
   }
   // Fetch image

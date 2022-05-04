@@ -150,6 +150,7 @@ self.onmessage = async (event) => {
   await modelReadyPromise;
   
   const { id, ...context } = event.data;
+  self.postMessage({ ready: true, id });
   if (id == 0) return; // request to just init python and pyodide
 
   // The worker copies the context in its own "memory" (an object mapping name to values)
