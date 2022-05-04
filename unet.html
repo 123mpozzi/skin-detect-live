@@ -103,6 +103,7 @@
     const square_size = 256;
     let webWorker = null;
     const debugMemory = false;
+    let running = false;
 
 
     // Utilities
@@ -151,6 +152,8 @@
     }
 
     async function skinDetectMain() {
+      if (running) return; // prevent users from spamming clicks on "Skin Detect" button
+      running = true;
       info('Using backend: ' + tf.getBackend());
       // This fixes GPU memory leak (bytes), but inference is slower
       if (tf.getBackend() === 'webgl')

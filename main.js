@@ -180,8 +180,11 @@ function initWorker(workerSrc) {
   return webWorker
 }
 
+let running = false;
 // Ask the js worker to init skin detection
 function skinDetect(webWorker) {
+  if (running) return; // prevent users from spamming clicks on "Skin Detect" button
+  running = true;
   const img_ori = document.getElementById("imgbox-ori");
   // check if URL is valid
   info('Checking URL...')
@@ -258,5 +261,8 @@ function updateSlider(results) {
   } else {
     info('Finish');
   }
+
+  // reset run status
   tries = 0;
+  running = false;
 }
