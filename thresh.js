@@ -331,11 +331,16 @@ ori_data = base64.b64encode(cv2.imencode('.png', origin)[1]).decode()
 image_height, image_width, image_channels = outcome.shape
 `;
 
+/** Ask the main thread to update the STATUS message */
 function info(string) {
   self.postMessage({ info: string });
   // TODO: Force element redraw
 }
 
+/**
+ * Load Pyodide and packages.  
+ * Place the loaded pyodide into self.pyodide
+ */
 async function loadPyodideAndPackages() {
   info('Loading python...');
   self.pyodide = await loadPyodide();
@@ -344,6 +349,8 @@ async function loadPyodideAndPackages() {
 }
 let pyodideReadyPromise = loadPyodideAndPackages();
 
+
+// Work
 self.onmessage = async (event) => {
   // make sure loading is done
   await pyodideReadyPromise;
@@ -355,6 +362,8 @@ self.onmessage = async (event) => {
   for (const key of Object.keys(context)) {
     self[key] = context[key];
   }
+
+
   // Now is the easy part, the one that is similar to working in the main thread:
   try {
     await self.pyodide.loadPackagesFromImports(python);
@@ -363,15 +372,16 @@ self.onmessage = async (event) => {
     info('Running script...');
 
     await self.pyodide.runPythonAsync(python);
+
+    // fetch results from python
     const img_data = self.pyodide.globals.get("img_data");
     const ori_data_post = self.pyodide.globals.get("ori_data");
     const image_width = self.pyodide.globals.get("image_width");
     const image_height = self.pyodide.globals.get("image_height");
-
     self.postMessage({ results: [img_data, ori_data_post, image_width, image_height], id });
 
     // clean memory
-    //img_data.destroy();
+    //img_data.destroy(); // .destroy() is not a function
     //ori_data.destroy();
   } catch (error) {
     self.postMessage({ error: error.message, id });

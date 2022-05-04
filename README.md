@@ -3,9 +3,15 @@
 [unet]: https://github.com/123mpozzi/skinny "see on GitHub"
 [pyodide]: https://github.com/pyodide/pyodide "see on GitHub"
 [tfjs]: https://github.com/tensorflow/tfjs "see on GitHub"
+[offscreencanvas]: https://caniuse.com/offscreencanvas "see feature support across browsers"
 
+# Live Demo of Skin Detectors
 
-# Skin detectors - Live demo
+<br />
+<h3 align="center">
+Skin detectors running directly in the browser<br> with no backend required
+</h3>
+<br />
 
 <br>
 <div align="center">
@@ -13,32 +19,44 @@
 </div>
 <br>
 
-### Adaptive rule based skin detector
-Live demo of my [python implementation][py] of the original paper (Brancati et al. 2017), running in the browser via [Pyodide][pyodide].
-
-###### ORIGINAL PAPER
-N. Brancati, G. De Pietro,M. Frucci, and L. Gallo. “Human skin detection through correlation rules between the YCb and YCr subspaces based on dynamic color clustering”. Computer Vision and Image Understanding 155, 2017, pp. 33–42.
-https://doi.org/10.1016/j.cviu.2016.12.001
 
 
-### Statistical
-Live demo of the [statistical skin detector][stat] featured in my thesis, running in the browser via [Pyodide][pyodide].
+###### ADAPTIVE THRESHOLDING
+Demo of my [python implementation][py] of the original paper (Brancati et al. 2017)  
+Running on: [Pyodide][pyodide]
 
-### U-Net
-Live demo of the [u-net skin detector][unet] featured in my thesis, running in the browser via [TensorFlow.js][tfjs].
+###### STATISTICAL
+Demo of the [statistical skin detector][stat] featured in my thesis (Acharjee 2018)  
+Running on: [Pyodide][pyodide]
+
+###### U-NET
+Demo of the [u-net skin detector][unet] featured in my thesis (Tarasiewicz et al. 2020)  
+Running on: [TensorFlow.js][tfjs]
+
+
+## Architecture
+
+<br>
+<div>
+  <img width="450" src="docs/architecture.svg" alt="Tetris Puzzle">
+</div>
+<br>
+
+###### NOTE
+[OffscreenCanvas support][offscreencanvas] is needed to run WebGL acceleration in background (used by U-Net).  
+I preferred to make the U-Net run on the main thread in case the browser does not support OffscreenCanvas because it should still get the WebGL acceleration, rather than running the U-Net in background using CPU, which is a lot slower. Hence the webpage may freeze in this case.
+
 
 ## Limitations
 
 #### Slower
-The python code runs in the browser thanks to [Pyodide][pyodide] which work wonderfully, but has not yet reached the performance of native python.  
+The python detectors runs in the browser thanks to [Pyodide][pyodide] which work wonderfully, but has not yet reached the performance of native python.  
 Therefore it is slower than the python implementation, and it must also load the Python distribution and packages before running.  
 
 Regarding U-Net, TensorFlow.js speed depends on the backend, which is automatically picked by the library itself, but it is generally slower than the python implementation.
 
+To mitigate high inference times, image size is limited to have the maximum dimension equal to 352px (while keeping aspect ratio) for python detectors, and 256x256 for U-Net, which should also permit running it on devices with little GPU memory.
+
 #### Cross-Origin Resource Sharing
 If the image at given URL is not hosted on the same website, it will not work and a random pre-defined image will be loaded instead.  
 Also, local URLs (file://) do not work.
-
-#### Page freezing
-The detector code runs in the main thread, hence the page may freeze, especially on large images.  
-Implementing WebWorkers would prevent this issue.
