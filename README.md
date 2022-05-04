@@ -13,11 +13,11 @@ Skin detectors running directly in the browser<br> with no backend required
 </h3>
 <br />
 
-<br>
+<br />
 <div align="center">
   <img width="300" src="docs/screen.png" alt="Tetris Puzzle">
 </div>
-<br>
+<br />
 
 
 
@@ -36,11 +36,11 @@ Running on: [TensorFlow.js][tfjs]
 
 ## Architecture
 
-<br>
+<br />
 <div>
   <img width="450" src="docs/architecture.svg" alt="Tetris Puzzle">
 </div>
-<br>
+<br />
 
 ###### NOTE
 [OffscreenCanvas support][offscreencanvas] is needed to run WebGL acceleration in background (used by U-Net).  
@@ -50,7 +50,7 @@ I preferred to make the U-Net run on the main thread in case the browser does no
 ## Limitations
 
 #### Slower
-The python detectors runs in the browser thanks to [Pyodide][pyodide] which work wonderfully, but has not yet reached the performance of native python.  
+The python detectors runs in the browser thanks to Pyodide which work wonderfully, but has not yet reached the performance of native python.  
 Therefore it is slower than the python implementation, and it must also load the Python distribution and packages before running.  
 
 Regarding U-Net, TensorFlow.js speed depends on the backend, which is automatically picked by the library itself, but it is generally slower than the python implementation.

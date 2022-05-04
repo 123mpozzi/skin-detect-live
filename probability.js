@@ -14,7 +14,7 @@ def read_model(model_csv: str):
   probability = pd.read_pickle(model_csv, compression='gzip')
   return probability
 
-model_url = '/models/statistical/ECU.pickle'
+model_url = 'models/statistical/ECU.pickle'
 try:
   response = await pyfetch(model_url, redirect = 'follow')
   if response.status == 200:

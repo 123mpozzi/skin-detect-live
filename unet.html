@@ -99,7 +99,7 @@
     const img_pred = document.getElementById("imgbox");
     const img_ori = document.getElementById("imgbox-ori");
     let model;
-    const modelURL = './models/web_model-20210428-155148/model.json';
+    const modelURL = 'models/web_model-20210428-155148/model.json';
     let webWorker = null;
     /** Whether to print memory usage in main steps */
     const debugMemory = false;
@@ -136,7 +136,7 @@
       // Check if can use web workers
       if (canIUseOffscreenCanvas()) {
         info('Using web workers')
-        webWorker = initWorker('/unet.js'); // init the web worker and update the local var
+        webWorker = initWorker('unet.js'); // init the web worker and update the local var
         return
       }
       else { // cannot use web workers: use main thread

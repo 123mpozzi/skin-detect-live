@@ -2,7 +2,7 @@
 
 importScripts("https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.16.0/dist/tf.min.js");
 
-const modelURL = '/models/web_model-20210428-155148/model.json';
+const modelURL = 'models/web_model-20210428-155148/model.json';
 /** Whether to print memory usage in main steps */
 const debugMemory = false;
 
