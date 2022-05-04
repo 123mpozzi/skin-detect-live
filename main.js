@@ -69,12 +69,13 @@ function isValidHttpUrl(string) {
 
   return url.protocol === "http:" || url.protocol === "https:";
 }
+let debugInfo = false;
 /**
  * Update the STATUS message, and also print to console
  * @param {String} string New STATUS message
  */
 function info(string) {
-  console.log(string)
+  if (debugInfo) console.log(string)
   document.getElementById("info").innerText = "STATUS - " + string
   // TODO: Force element redraw (sometimes the value is updated in the DOM, but page is not redrawn)
 }
@@ -204,7 +205,7 @@ function getMeta(img, url, webWorker){
 // Skin Detection
 
 /** Size of each side of the images fed into the U-Net */
-const square_size = 256;
+const square_size = 352;
 /**
  * Ask the js worker to run init tasks
  * @param  {String} workerSrc The js script used to init the web worker
