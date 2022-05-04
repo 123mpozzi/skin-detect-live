@@ -146,15 +146,18 @@ function getMeta(img, url, webWorker){
 }
 
 
-// Pyodide Detectors
+// Skin Detection
 
+const square_size = 256;
 // Ask the js worker to run init tasks
 function initWorker(workerSrc) {
   let webWorker = new Worker(workerSrc);
+  let ori_data = null;
+  let img_data = null;
   // identify a Promise
   let id = 0; // ID=0 : init tasks
 
-  webWorker.onmessage = (event) => {
+  webWorker.onmessage = async (event) => {
     const { id, ...data } = event.data;
 
     if (data.info !== undefined) {
@@ -164,20 +167,55 @@ function initWorker(workerSrc) {
       console.log(data.error);
     }
     if (data.results !== undefined) {
+      if (img_data !== null) {
+        data.results[0] = img_data;
+        img_data = null;
+      }
+      if (ori_data !== null) {
+        data.results[1] = ori_data;
+        ori_data = null;
+      }
       updateSlider(data.results);
     }
     if (data.table !== undefined) {
       console.table(data.table);
     }
+    if (data.topixels !== undefined) {
+      const data_shape = data.topixels[1];
+      const tensor = tf.tensor(data.topixels[0], data_shape, 'float32');
+      const canvas = document.createElement('canvas');
+      const image_width = data_shape[0]; //tensor.shape[1];
+      const image_height = data_shape[1]; //tensor.shape[0];
+      canvas.width = image_width;
+      canvas.height = image_height;
+      console.log(tensor.print())
+      await tf.browser.toPixels(tensor, canvas); // await
+      //paint(tensor, canvas)
+      tensor.dataSync();
+      tensor.dispose();
+
+      console.log('a')
+      console.log(data_shape)
+      console.log(image_width)
+      console.log(image_height)
+      if (data_shape[2] === 3)
+        img_data = canvas.toDataURL();
+      else
+        ori_data = canvas.toDataURL();
+    }
   };
 
   // init tasks
   webWorker.postMessage({
-    ...{},
+    ...{ square_size: square_size },
     id,
   });
 
   return webWorker
+}
+
+async function paint(tensor, canvas) {
+  await tf.browser.toPixels(tensor, canvas); // await
 }
 
 let running = false;
@@ -231,6 +269,7 @@ function updateSlider(results) {
   const ori_data = results[1];
   const image_width = results[2];
   const image_height = results[3];
+  let prefix = '';
 
   const imgbox_el = document.getElementById("imgbox");
   const imgboxori_el = document.getElementById("imgbox-ori");
@@ -247,8 +286,10 @@ function updateSlider(results) {
   slider_el.style.height = String(image_height) + 'px';
   slidercont_el.style.height = String(image_height+50) + 'px';
 
-  imgbox_el.src = "data:image/png;base64," + img_data;
-  imgboxori_el.src = "data:image/png;base64," + ori_data;
+  if (!img_data.startsWith('data:image')) prefix = 'data:image/png;base64,';
+  imgbox_el.src = prefix + img_data;
+  if (!ori_data.startsWith('data:image')) prefix = 'data:image/png;base64,';
+  imgboxori_el.src = prefix + ori_data;
 
   // init comparison slider transparency
   const slideValue = document.getElementById("slider").value;

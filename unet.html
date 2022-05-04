@@ -100,10 +100,8 @@
     const img_ori = document.getElementById("imgbox-ori");
     let model;
     const modelURL = './models/web_model-20210428-155148/model.json';
-    const square_size = 256;
     let webWorker = null;
     const debugMemory = false;
-    let running = false;
 
 
     // Utilities
@@ -122,30 +120,36 @@
     // Warmup the model before using real data to get a faster 1st prediction
     async function warmupModel() {
       info('Model warmup...');
-      const inputShape = [1, img_ori.style.height, img_ori.style.width, 3];
+      const inputShape = [1, square_size, square_size, 3];
       const warmupResult = model.execute({ 'feature' : tf.zeros(inputShape) });
       warmupResult.dataSync(); // we don't care about the result
       warmupResult.dispose();
     }
     async function main() {
-      model = await loadModel();
-      warmupModel(model);
-      info('Ready, Waiting input');
-      printMemory();
+      if (canIUseOffscreenCanvas()) {
+        info('Using web workers')
+        webWorker = initWorker('/unet.js');
+        return
+      }
+      else { // cannot use web workers: use main thread
+        info('Using main thread')
+        model = await loadModel();
+        warmupModel(model);
+        info('Ready, Waiting input');
+        printMemory();
+        return
+      }
     }
 
 
     // Skin Detect
 
     async function skinDetectTf(webWorker) {
-      if (canIUseOffscreenCanvas()) {
-        info('Using web workers')
-        if (webWorker === null) webWorker = initWorker('/unet.js');
+      if (webWorker !== null) {
         skinDetect(webWorker);
         return
       }
       else { // cannot use web workers: use main thread
-        info('Using main thread')
         skinDetectMain();
         return
       }
@@ -242,23 +246,31 @@
       printMemory();
     }
     // After img src is loaded, run skin detection
-    function skinDetectContinueWorker(webWorker) {
+    async function skinDetectContinueWorker(webWorker) {
       // remove previous event listener or it will lag after setting img src
       const img_ori = document.getElementById("imgbox-ori");
       img_ori.removeEventListener("load", onLoad);
       img_ori.removeEventListener("error", onError);
 
-      const img_canvas = imageToSquare(img_ori, square_size);
-      const ori_data = img_canvas.toDataURL("image/jpeg", 1);
-      const temp_canvas = document.createElement('canvas');
+      const squared_image = imageToSquare(img_ori, square_size);
+      const ori_data = squared_image.toDataURL("image/jpeg", 1);
+      //const temp_canvas = document.createElement('canvas');
+
+      const from_pixels = tf.browser.fromPixels(squared_image); // img in 0-255
+      const data_shape = from_pixels.shape;
+      const data = await from_pixels.data();
+      //const data = await from_pixels.array();
+      from_pixels.dispose();
+      console.log(data)
 
       let id = 1;
 
       // pass base64 data of the img and predefined samples to web worker
       const context = {
-        ori_data: ori_data,
+        //ori_data: ori_data,
         square_size: square_size,
-        canvas: temp_canvas,
+        //from_pixels: data,//data.buffer,
+        from_pixels: [data, data_shape],//data.buffer,
       };
 
       // Request skin detection
