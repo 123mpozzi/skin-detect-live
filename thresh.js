@@ -319,7 +319,7 @@ try:
   outcome, origin = skin_detect(ori_data, 'img.png')
 except:
   info('Failed to detect skin, please try with a different image', 'error')
-info('Encoding image')
+info('Encoding image...')
 
 # Return image as base64 encoded string
 img_data = base64.b64encode(cv2.imencode('.png', outcome)[1]).decode()

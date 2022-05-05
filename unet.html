@@ -173,6 +173,8 @@
     async function skinDetectMain() {
       if (!canRun || running) return; // prevent users from spamming clicks on "Skin Detect" button
       running = true;
+      document.getElementById("slider-container").style.visibility = "hidden";
+
       info('Using backend: ' + tf.getBackend());
       // This fixes GPU memory leak (bytes), but inference is slower
       if (tf.getBackend() === 'webgl')

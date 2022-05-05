@@ -21,14 +21,20 @@ try:
     modelname = os.path.basename(response.url)
     with open(modelname, "wb") as f:
       f.write(await response.bytes())
-    info('Model fetched')
 except:
   info('Cannot fetch the model', 'critical')
   exit()
 
 info('Reading probability...')
-probability = read_model(modelname)
-info('Probability data loaded')
+
+try:
+  probability = read_model(modelname)
+except MemoryError:
+  info('Memory is not enough to run this detector', 'critical')
+  exit()
+except Exception:
+  info('Failed to read probability', 'critical')
+  exit()
 `;
 
 const python_skindetect = `
@@ -92,11 +98,10 @@ out_img = 'img.png'
 
 try:
   outcome, origin = skin_detect(ori_data, out_img, probability)
-  info('Skin detector ran without issues')
 except:
   info('Failed to detect skin, please try with a different image', 'error')
 
-info('Encoding image')
+info('Encoding image...')
 
 # Return image as base64 encoded string
 buffered = BytesIO()

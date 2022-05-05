@@ -304,6 +304,7 @@ let canRun = false;
 function skinDetect(webWorker) {
   if (!canRun || running) return; // prevent users from spamming clicks on "Skin Detect" button
   running = true;
+  document.getElementById("slider-container").style.visibility = "hidden";
 
   const img_ori = document.getElementById("imgbox-ori");
 
