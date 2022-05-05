@@ -74,9 +74,10 @@ let debugInfo = false;
  * Update the STATUS message, and also print to console
  * @param {String} string New STATUS message
  */
-function info(string) {
+function info(string, prefix) {
   if (debugInfo) console.log(string)
-  document.getElementById("info").innerText = "STATUS - " + string
+  if (prefix === undefined) prefix = 'wait'
+  document.getElementById("info").innerText = prefix.toUpperCase() + ' - ' + string
   // TODO: Force element redraw (sometimes the value is updated in the DOM, but page is not redrawn)
 }
 /**
@@ -174,7 +175,6 @@ function onError() {
     return
   }
 
-  info('Error on the given image, trying on a random image instead');
   url = getRandomSample();
   this.src = url;
   setImageURL(url);
@@ -231,7 +231,7 @@ function initWorker(workerSrc) {
     }
     // update status message
     if (data.info !== undefined) {
-      info(data.info);
+      info(data.info[0], data.info[1]);
     }
     // log errors
     if (data.error !== undefined) {
@@ -393,9 +393,9 @@ function updateSlider(results) {
 
   // Update STATUS message
   if (tries > 0) {
-    info('Finish with sample image (invalid url)');
+    info('Invalid URL, Used sample image', 'finish');
   } else {
-    info('Finish');
+    info('Waiting new input', 'finish');
   }
 
   // Reset run status

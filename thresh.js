@@ -317,9 +317,8 @@ def readb64(uri):
 # Run skin detector
 try:
   outcome, origin = skin_detect(ori_data, 'img.png')
-  info('Skin detector ran without issues')
 except:
-  info('Error while detecting skin, please try again with a different image')
+  info('Failed to detect skin, please try with a different image', 'error')
 info('Encoding image')
 
 # Return image as base64 encoded string
@@ -332,8 +331,8 @@ image_height, image_width, image_channels = outcome.shape
 `;
 
 /** Ask the main thread to update the STATUS message */
-function info(string) {
-  self.postMessage({ info: string });
+function info(string, prefix) {
+  self.postMessage({ info: [string, prefix] });
   // TODO: Force element redraw
 }
 
@@ -344,8 +343,9 @@ function info(string) {
 async function loadPyodideAndPackages() {
   info('Loading python...');
   self.pyodide = await loadPyodide();
+  info('Loading packages...');
   await self.pyodide.loadPackage("opencv-python");
-  info('Ready, Waiting input');
+  info('Waiting input', 'ready');
 }
 let pyodideReadyPromise = loadPyodideAndPackages();
 
@@ -385,6 +385,7 @@ self.onmessage = async (event) => {
     //img_data.destroy(); // .destroy() is not a function
     //ori_data.destroy();
   } catch (error) {
+    info('Predict error, refresh and retry', 'critical');
     self.postMessage({ error: error.message, id });
   }
 };

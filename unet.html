@@ -64,7 +64,7 @@
             Also take note that <i>filtered images</i> are bad because the colors are altered
           </p>
           </div>
-          <p id="info">STATUS - Ready, Waiting input</p>
+          <p id="info">READY - Waiting input</p>
           <div class="u-full-width search-form" >
             <div id="url-container" class="six columns" >
               <input id="name" name="name" class="two-thirds column" type="search" 
@@ -144,7 +144,7 @@
         model = await loadModel();
         warmupModel(model);
         canRun = true;
-        info('Ready, Waiting input');
+        info('Waiting input', 'ready');
         printMemory();
         return
       }
@@ -266,7 +266,7 @@
 
         updateSlider([img_data, ori_data, image_width, image_height]);
       } catch (_) {
-        info('Critical: error on predict, refresh and retry');
+        info('Predict error, refresh and retry', 'critical');
       }
 
       // clean memory

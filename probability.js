@@ -23,7 +23,7 @@ try:
       f.write(await response.bytes())
     info('Model fetched')
 except:
-  info('Critical: error on fetching the model')
+  info('Cannot fetch the model', 'critical')
   exit()
 
 info('Reading probability...')
@@ -94,7 +94,7 @@ try:
   outcome, origin = skin_detect(ori_data, out_img, probability)
   info('Skin detector ran without issues')
 except:
-  info('Error while detecting skin, please try again with a different image')
+  info('Failed to detect skin, please try with a different image', 'error')
 
 info('Encoding image')
 
@@ -112,8 +112,8 @@ image_width, image_height = outcome.size
 `;
 
 /** Ask the main thread to update the STATUS message */
-function info(string) {
-  self.postMessage({ info: string });
+function info(string, prefix) {
+  self.postMessage({ info: [string, prefix] });
   // TODO: Force element redraw
 }
 
@@ -124,8 +124,9 @@ function info(string) {
 async function loadPyodideAndPackages() {
   info('Loading python...');
   self.pyodide = await loadPyodide();
+  info('Loading packages...');
   await self.pyodide.loadPackage(["Pillow", "pandas"]);
-  info('Ready, Waiting input');
+  info('Waiting input', 'ready');
 }
 let pyodideReadyPromise = loadPyodideAndPackages();
 
@@ -139,7 +140,7 @@ async function fetchModel(){
   await self.pyodide.runPythonAsync(python_fetchmodel);
   self.probability = self.pyodide.globals.get("probability");
 
-  info('Ready, Waiting input');
+  info('Waiting input', 'ready');
 }
 let modelReadyPromise = fetchModel();
 
@@ -182,6 +183,7 @@ self.onmessage = async (event) => {
     //img_data.destroy(); // .destroy() is not a function
     //ori_data.destroy();
   } catch (error) {
+    info('Predict error, refresh and retry', 'critical');
     self.postMessage({ error: error.message, id });
   }
 };

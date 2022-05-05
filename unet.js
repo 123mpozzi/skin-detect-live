@@ -12,8 +12,8 @@ function printMemory() {
 }
 
 /** Ask the main thread to update the STATUS message */
-function info(string) {
-  self.postMessage({ info: string });
+function info(string, prefix) {
+  self.postMessage({ info: [string, prefix] });
   // TODO: Force element redraw
 }
 
@@ -49,7 +49,7 @@ async function warmupModel() {
   warmupResult.dataSync(); // we don't care about the result
   warmupResult.dispose();
 
-  info('Ready, Waiting input');
+  info('Waiting input', 'ready');
   printMemory();
 }
 let modelWarmupPromise = warmupModel();
@@ -112,7 +112,7 @@ self.onmessage = async (event) => {
 
     self.postMessage({ results: [null, null, image_width, image_height], id });
   } catch (error) {
-    info('Critical: error on predict, refresh and retry');
+    info('Predict error, refresh and retry', 'critical');
     self.postMessage({ error: error.message, id });
   }
 
