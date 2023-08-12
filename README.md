@@ -16,7 +16,7 @@ Skin detectors running directly in the browser<br> with no backend required
 
 <br />
 <div align="center">
-  <img width="300" src="docs/screen.png" alt="Tetris Puzzle">
+  <img width="300" src="docs/screen.png" alt="Screenshot">
 </div>
 <br />
 
@@ -40,7 +40,7 @@ Running on: [TensorFlow.js][tfjs]
 
 <br />
 <div>
-  <img width="450" src="docs/architecture.svg" alt="Tetris Puzzle">
+  <img width="450" src="docs/architecture.svg" alt="Architecture">
 </div>
 <br />
 
