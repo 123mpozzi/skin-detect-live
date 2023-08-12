@@ -1,6 +1,6 @@
 // Web Worker
 
-importScripts("https://cdn.jsdelivr.net/pyodide/dev/full/pyodide.js");
+importScripts("https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js");
 
 const python = `
 import cv2

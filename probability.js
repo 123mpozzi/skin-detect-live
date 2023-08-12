@@ -1,6 +1,6 @@
 // Web Worker
 
-importScripts("https://cdn.jsdelivr.net/pyodide/dev/full/pyodide.js");
+importScripts("https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js");
 
 // Read probability data from pickle model
 const python_fetchmodel = `
